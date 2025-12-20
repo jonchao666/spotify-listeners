@@ -1,0 +1,31 @@
+# Sensitive files
+cookies.json
+.env
+
+# Data files
+listeners_data.json
+listeners.db
+
+# Logs
+*.log
+output.log
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Screenshots
+debug_screenshot.png
+
+# Windows reserved names
+nul

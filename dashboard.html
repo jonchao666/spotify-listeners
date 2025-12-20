@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spotify Listeners Pro - Commercial Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --spotify-green: #1DB954;
+      --spotify-green-light: #1ed760;
+      --spotify-green-dark: #169c46;
+      --bg-primary: #0d0d0d;
+      --bg-secondary: #1a1a2e;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.6);
+      --text-tertiary: rgba(255, 255, 255, 0.4);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, #16213e 100%);
+      color: var(--text-primary);
+      padding: 0;
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* 动态背景 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(29, 185, 84, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29, 185, 84, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 顶部导航栏 */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 13, 13, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+    }
+
+    .navbar-content {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--spotify-green), var(--spotify-green-light));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(29, 185, 84, 0.4);
+    }
+
+    .logo svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--spotify-green), var(--spotify-green-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .theme-toggle, .refresh-btn {
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .theme-toggle:hover, .refresh-btn:hover {
+      background: rgba(29, 185, 84, 0.1);
+      border-color: rgba(29, 185, 84, 0.3);
+      color: var(--spotify-green);
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(29, 185, 84, 0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--spotify-green);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--spotify-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* 主内容区 */
+    .main-content {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 网格布局 - 高信息密度 */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* 卡片样式 */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(29, 185, 84, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* 紧凑型统计卡片 */
+    .stat-mini {
+      grid-column: span 2;
+      text-align: center;
+    }
+
+    .stat-mini-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .stat-mini-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-mini-change {
+      font-size: 12px;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .change-up { color: var(--spotify-green); }
+    .change-down { color: #ef4444; }
+
+    /* 大型图表区域 */
+    .chart-large {
+      grid-column: span 8;
+    }
+
+    .chart-medium {
+      grid-column: span 6;
+    }
+
+    .chart-small {
+      grid-column: span 4;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    /* 范围选择器 */
+    .range-selector {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .range-btn {
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .range-btn:hover {
+      background: rgba(29, 185, 84, 0.1);
+      border-color: rgba(29, 185, 84, 0.3);
+      color: var(--spotify-green);
+    }
+
+    .range-btn.active {
+      background: rgba(29, 185, 84, 0.2);
+      border-color: var(--spotify-green);
+      color: var(--spotify-green);
+    }
+
+    /* 时段热力图 */
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .heatmap-cell {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 8px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .heatmap-cell:hover {
+      border-color: var(--spotify-green);
+      transform: scale(1.05);
+    }
+
+    .heatmap-hour {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+
+    .heatmap-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* 峰值列表 */
+    .peaks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .peak-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .peak-item:hover {
+      background: rgba(29, 185, 84, 0.05);
+      border-color: var(--spotify-green);
+    }
+
+    .peak-rank {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--spotify-green), var(--spotify-green-light));
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .peak-info {
+      flex: 1;
+    }
+
+    .peak-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .peak-time {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* 日对比表格 */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .comparison-table th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .comparison-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* 实时数据流 */
+    .realtime-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 280px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .stream-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2px solid var(--spotify-green);
+      border-radius: 4px;
+    }
+
+    .stream-time {
+      color: var(--text-tertiary);
+    }
+
+    .stream-value {
+      color: var(--spotify-green);
+      font-weight: 600;
+    }
+
+    /* 错误提示 */
+    .error-banner {
+      grid-column: span 12;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-icon {
+      font-size: 24px;
+    }
+
+    .error-content {
+      flex: 1;
+    }
+
+    .error-title {
+      font-weight: 600;
+      color: #ef4444;
+      margin-bottom: 4px;
+    }
+
+    .error-message {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .error-action {
+      padding: 8px 16px;
+      background: #ef4444;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 响应式 */
+    @media (max-width: 1400px) {
+      .stat-mini { grid-column: span 3; }
+      .chart-large { grid-column: span 12; }
+      .chart-medium { grid-column: span 12; }
+      .chart-small { grid-column: span 6; }
+    }
+
+    @media (max-width: 768px) {
+      .stat-mini { grid-column: span 6; }
+      .chart-small { grid-column: span 12; }
+      .heatmap-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-tertiary);
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(29, 185, 84, 0.2);
+      border-top-color: var(--spotify-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 模态框 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 600px;
+      padding: 32px;
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      border-top: 1px solid var(--border-color);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="navbar">
+  <div class="navbar-content">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Spotify Listeners Pro</h1>
+        <div class="brand-subtitle">Commercial-Grade Analytics Dashboard</div>
+      </div>
+    </div>
+    <div class="nav-controls">
+      <button class="refresh-btn" onclick="refresh()">🔄 刷新数据</button>
+      <div class="live-badge" id="status-badge">
+        <span class="live-dot"></span>
+        实时监控中
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- 主内容 -->
+<div class="main-content">
+
+  <!-- 错误提示 -->
+  <div id="error-display"></div>
+
+  <!-- Dashboard Grid -->
+  <div class="dashboard-grid">
+
+    <!-- 紧凑统计卡片 (6个) -->
+    <div class="card stat-mini" id="stat-current">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card stat-mini" id="stat-max">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card stat-mini" id="stat-min">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card stat-mini" id="stat-avg">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card stat-mini" id="stat-records">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div class="card stat-mini" id="stat-trend">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+    <!-- 主图表 -->
+    <div class="card chart-large">
+      <div class="card-header">
+        <div>
+          <div class="card-title">📈 实时收听趋势</div>
+          <div class="card-subtitle" id="chart-subtitle">数据加载中...</div>
+        </div>
+        <div class="range-selector">
+          <button class="range-btn" data-range="60">30分钟</button>
+          <button class="range-btn active" data-range="120">1小时</button>
+          <button class="range-btn" data-range="360">3小时</button>
+          <button class="range-btn" data-range="720">6小时</button>
+          <button class="range-btn" data-range="1440">12小时</button>
+          <button class="range-btn" data-range="2880">24小时</button>
+          <button class="range-btn" data-range="0">全部</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="main-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- 峰值时刻 -->
+    <div class="card chart-small">
+      <div class="card-header">
+        <div class="card-title">🏆 历史峰值时刻</div>
+      </div>
+      <div class="peaks-list" id="peaks-list">
+        <div class="loading"><div class="spinner"></div>加载中...</div>
+      </div>
+    </div>
+
+    <!-- 时段热力图 -->
+    <div class="card chart-medium">
+      <div class="card-header">
+        <div class="card-title">🔥 24小时热力图</div>
+        <div class="card-subtitle">每小时平均收听人数</div>
+      </div>
+      <div class="heatmap-grid" id="heatmap">
+        <div class="loading"><div class="spinner"></div>加载中...</div>
+      </div>
+    </div>
+
+    <!-- 日对比分析 -->
+    <div class="card chart-medium">
+      <div class="card-header">
+        <div class="card-title">📊 最近7天对比</div>
+        <div class="card-subtitle">每日数据统计</div>
+      </div>
+      <div style="max-height: 280px; overflow-y: auto;">
+        <table class="comparison-table" id="daily-comparison">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>平均</th>
+              <th>最高</th>
+              <th>最低</th>
+              <th>样本数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5"><div class="loading"><div class="spinner"></div>加载中...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 实时数据流 -->
+    <div class="card chart-small">
+      <div class="card-header">
+        <div class="card-title">⚡ 实时数据流</div>
+        <div class="card-subtitle">最近5分钟</div>
+      </div>
+      <div class="realtime-stream" id="realtime-stream">
+        <div class="loading"><div class="spinner"></div>加载中...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    Spotify Listeners Pro · Commercial-Grade Dashboard v2.0
+  </footer>
+</div>
+
+<script>
+// 全局变量
+let mainChart;
+let currentRange = 120;
+let allData = [];
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+  setupRangeSelector();
+  refresh();
+  setInterval(refresh, 10000); // 每10秒刷新
+});
+
+// 范围选择器
+function setupRangeSelector() {
+  document.querySelectorAll('.range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRange = parseInt(btn.dataset.range);
+      loadMainChart();
+    });
+  });
+}
+
+// 检查状态
+async function checkStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const status = await res.json();
+    const badge = document.getElementById('status-badge');
+    const errorDisplay = document.getElementById('error-display');
+
+    if (status.errorMessage) {
+      badge.innerHTML = '<span class="live-dot" style="background:#ef4444"></span>状态异常';
+      badge.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+      badge.style.color = '#ef4444';
+
+      errorDisplay.innerHTML = `
+        <div class="error-banner">
+          <div class="error-icon">🚨</div>
+          <div class="error-content">
+            <div class="error-title">${status.errorMessage}</div>
+            <div class="error-message">最后成功: ${status.lastSuccess ? new Date(status.lastSuccess).toLocaleString() : '从无'}</div>
+          </div>
+          <button class="error-action" onclick="window.location.reload()">重新登录</button>
+        </div>
+      `;
+    } else {
+      badge.innerHTML = '<span class="live-dot"></span>实时监控中';
+      badge.style.backgroundColor = 'rgba(29, 185, 84, 0.2)';
+      badge.style.color = 'var(--spotify-green)';
+      errorDisplay.innerHTML = '';
+    }
+  } catch (e) {
+    console.error('检查状态失败:', e);
+  }
+}
+
+// 加载统计数据
+async function loadStats() {
+  try {
+    const [statsRes, trendRes] = await Promise.all([
+      fetch('/api/stats'),
+      fetch('/api/analytics/trend?hours=1')
+    ]);
+
+    const stats = await statsRes.json();
+    const trend = await trendRes.json();
+
+    if (!stats || stats.totalRecords === 0) {
+      return;
+    }
+
+    // 当前收听
+    document.getElementById('stat-current').innerHTML = `
+      <div class="stat-mini-value">${stats.latestCount.toLocaleString()}</div>
+      <div class="stat-mini-label">当前收听</div>
+      <div class="stat-mini-change ${trend.direction === 'up' ? 'change-up' : trend.direction === 'down' ? 'change-down' : ''}">
+        ${trend.trendPercent > 0 ? '+' : ''}${trend.trendPercent}% (1h)
+      </div>
+    `;
+
+    // 历史最高
+    document.getElementById('stat-max').innerHTML = `
+      <div class="stat-mini-value">${stats.maxCount.toLocaleString()}</div>
+      <div class="stat-mini-label">历史最高</div>
+    `;
+
+    // 最低记录
+    document.getElementById('stat-min').innerHTML = `
+      <div class="stat-mini-value">${stats.minCount.toLocaleString()}</div>
+      <div class="stat-mini-label">历史最低</div>
+    `;
+
+    // 平均值
+    document.getElementById('stat-avg').innerHTML = `
+      <div class="stat-mini-value">${stats.avgCount.toLocaleString()}</div>
+      <div class="stat-mini-label">平均值</div>
+    `;
+
+    // 总记录数
+    document.getElementById('stat-records').innerHTML = `
+      <div class="stat-mini-value">${stats.totalRecords.toLocaleString()}</div>
+      <div class="stat-mini-label">总记录数</div>
+    `;
+
+    // 趋势指标
+    const trendText = trend.direction === 'up' ? '📈 上升' : trend.direction === 'down' ? '📉 下降' : '➡️ 平稳';
+    document.getElementById('stat-trend').innerHTML = `
+      <div class="stat-mini-value" style="font-size:20px;">${trendText}</div>
+      <div class="stat-mini-label">1小时趋势</div>
+    `;
+
+  } catch (e) {
+    console.error('加载统计失败:', e);
+  }
+}
+
+// 加载主图表
+async function loadMainChart() {
+  try {
+    const limit = currentRange === 0 ? 10000 : currentRange;
+    const res = await fetch(`/api/data?limit=${limit}`);
+    allData = await res.json();
+
+    if (allData.length === 0) return;
+
+    const subtitle = currentRange === 0 ? `全量数据 (${allData.length} 个点)` : `最近 ${allData.length} 个采集点`;
+    document.getElementById('chart-subtitle').textContent = subtitle;
+
+    const labels = allData.map(d => {
+      const date = new Date(d.timestamp);
+      return currentRange > 720 || currentRange === 0
+        ? date.toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'numeric', minute:'numeric'})
+        : date.toLocaleTimeString();
+    });
+    const values = allData.map(d => d.listenerCount);
+
+    const ctx = document.getElementById('main-chart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(29, 185, 84, 0.3)');
+    gradient.addColorStop(1, 'rgba(29, 185, 84, 0)');
+
+    if (!mainChart) {
+      mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderColor: '#1DB954',
+            borderWidth: 2,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#1DB954',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 300 },
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              titleColor: '#fff',
+              bodyColor: '#1DB954',
+              borderColor: 'rgba(29, 185, 84, 0.3)',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: ctx => ctx.parsed.y.toLocaleString() + ' 人正在收听'
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 11 } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 12, font: { size: 10 } }
+            }
+          }
+        }
+      });
+    } else {
+      mainChart.data.labels = labels;
+      mainChart.data.datasets[0].data = values;
+      mainChart.update('none');
+    }
+  } catch (e) {
+    console.error('加载图表失败:', e);
+  }
+}
+
+// 加载峰值列表
+async function loadPeaks() {
+  try {
+    const res = await fetch('/api/analytics/peaks?limit=5');
+    const peaks = await res.json();
+
+    if (peaks.length === 0) {
+      document.getElementById('peaks-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-tertiary)">暂无数据</div>';
+      return;
+    }
+
+    const html = peaks.map((peak, idx) => `
+      <div class="peak-item">
+        <div class="peak-rank">${idx + 1}</div>
+        <div class="peak-info">
+          <div class="peak-value">${peak.listenerCount.toLocaleString()} 人</div>
+          <div class="peak-time">${peak.date}</div>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('peaks-list').innerHTML = html;
+  } catch (e) {
+    console.error('加载峰值失败:', e);
+  }
+}
+
+// 加载时段热力图
+async function loadHeatmap() {
+  try {
+    const res = await fetch('/api/analytics/hourly');
+    const hourly = await res.json();
+
+    if (hourly.length === 0) {
+      document.getElementById('heatmap').innerHTML = '<div class="loading">暂无数据</div>';
+      return;
+    }
+
+    // 补全24小时
+    const heatmapData = Array(24).fill(0).map((_, hour) => {
+      const found = hourly.find(h => h.hour === hour);
+      return found || { hour, avgCount: 0, maxCount: 0 };
+    });
+
+    const html = heatmapData.map(h => `
+      <div class="heatmap-cell">
+        <div class="heatmap-hour">${h.hour}:00</div>
+        <div class="heatmap-value">${h.avgCount}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('heatmap').innerHTML = html;
+  } catch (e) {
+    console.error('加载热力图失败:', e);
+  }
+}
+
+// 加载日对比
+async function loadDailyComparison() {
+  try {
+    const res = await fetch('/api/analytics/daily-comparison');
+    const daily = await res.json();
+
+    if (daily.length === 0) {
+      document.querySelector('#daily-comparison tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary)">暂无数据</td></tr>';
+      return;
+    }
+
+    const html = daily.map(d => `
+      <tr>
+        <td>${d.date}</td>
+        <td>${d.avgCount.toLocaleString()}</td>
+        <td>${d.maxCount.toLocaleString()}</td>
+        <td>${d.minCount.toLocaleString()}</td>
+        <td>${d.samples.toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    document.querySelector('#daily-comparison tbody').innerHTML = html;
+  } catch (e) {
+    console.error('加载日对比失败:', e);
+  }
+}
+
+// 加载实时数据流
+async function loadRealtime() {
+  try {
+    const res = await fetch('/api/realtime');
+    const realtime = await res.json();
+
+    if (realtime.length === 0) {
+      document.getElementById('realtime-stream').innerHTML = '<div class="loading">暂无数据</div>';
+      return;
+    }
+
+    const html = realtime.slice(-20).reverse().map(r => `
+      <div class="stream-item">
+        <span class="stream-time">${new Date(r.timestamp).toLocaleTimeString()}</span>
+        <span class="stream-value">${r.listenerCount} 人</span>
+      </div>
+    `).join('');
+
+    document.getElementById('realtime-stream').innerHTML = html;
+  } catch (e) {
+    console.error('加载实时数据失败:', e);
+  }
+}
+
+// 刷新所有数据
+async function refresh() {
+  await Promise.all([
+    checkStatus(),
+    loadStats(),
+    loadMainChart(),
+    loadPeaks(),
+    loadHeatmap(),
+    loadDailyComparison(),
+    loadRealtime()
+  ]);
+}
+</script>
+
+</body>
+</html>

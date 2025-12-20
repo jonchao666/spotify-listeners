@@ -1,0 +1,2140 @@
+require('dotenv').config();
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const initSqlJs = require('sql.js');
+
+// 配置
+const CONFIG = {
+  artistUrl: process.env.ARTIST_URL || 'https://artists.spotify.com/c/artist/41pwUFNGuwEl50hAQPV8ok/home',
+  scrapeInterval: parseInt(process.env.SCRAPE_INTERVAL) || 5000,
+  cookiesFile: process.env.COOKIES_FILE || 'cookies.json',
+  databaseFile: process.env.DATABASE_FILE || 'listeners.db',
+  port: parseInt(process.env.PORT) || 3000
+};
+
+// 数据存储
+let db = null;
+let browser = null;
+let page = null;
+
+// 数据库保存计数器（用于批量保存）
+let insertCount = 0;
+let scrapeCount = 0;
+
+// 抓取状态（用于前端显示）
+let scrapeStatus = {
+  lastSuccess: null,
+  lastError: null,
+  errorMessage: null,
+  needsLogin: false,
+  consecutiveErrors: 0
+};
+
+// 初始化数据库
+async function initDatabase() {
+  try {
+    const SQL = await initSqlJs();
+
+    // 如果数据库文件存在，加载它
+    if (fs.existsSync(CONFIG.databaseFile)) {
+      const buffer = fs.readFileSync(CONFIG.databaseFile);
+      db = new SQL.Database(buffer);
+    } else {
+      db = new SQL.Database();
+    }
+
+    // 创建表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS listeners (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT NOT NULL,
+        listener_count INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    db.run('CREATE INDEX IF NOT EXISTS idx_timestamp ON listeners(timestamp)');
+
+    const result = db.exec('SELECT COUNT(*) as count FROM listeners');
+    const count = result.length > 0 ? result[0].values[0][0] : 0;
+    console.log(`数据库已初始化，当前有 ${count} 条历史记录`);
+
+    return db;
+  } catch (e) {
+    console.error('初始化数据库失败:', e.message);
+    process.exit(1);
+  }
+}
+
+// 保存数据库到文件
+function saveDatabaseToFile() {
+  try {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(CONFIG.databaseFile, buffer);
+  } catch (e) {
+    console.error('保存数据库失败:', e.message);
+  }
+}
+
+// 保存数据到数据库（优化版：批量保存）
+function saveData(timestamp, listenerCount) {
+  try {
+    db.run('INSERT INTO listeners (timestamp, listener_count) VALUES (?, ?)', [timestamp, listenerCount]);
+
+    insertCount++;
+
+    // ✅ 每 12 次插入（约1分钟）保存一次到文件，大幅减少磁盘IO
+    if (insertCount >= 12) {
+      saveDatabaseToFile();
+      console.log(`数据库已保存到文件 (批次: ${insertCount} 条记录)`);
+      insertCount = 0;
+    }
+  } catch (e) {
+    console.error('保存数据失败:', e.message);
+  }
+}
+
+// 获取统计数据
+function getStats() {
+  try {
+    const statsResult = db.exec(`
+      SELECT
+        COUNT(*) as totalRecords,
+        MAX(listener_count) as maxCount,
+        MIN(listener_count) as minCount,
+        AVG(listener_count) as avgCount
+      FROM listeners
+    `);
+
+    const latestResult = db.exec('SELECT timestamp, listener_count FROM listeners ORDER BY id DESC LIMIT 1');
+
+    if (statsResult.length === 0) {
+      return { totalRecords: 0 };
+    }
+
+    const stats = statsResult[0].values[0];
+    const latest = latestResult.length > 0 ? latestResult[0].values[0] : null;
+
+    return {
+      totalRecords: stats[0],
+      maxCount: stats[1],
+      minCount: stats[2],
+      avgCount: Math.round(stats[3]),
+      latestCount: latest ? latest[1] : 0,
+      latestTime: latest ? latest[0] : null
+    };
+  } catch (e) {
+    console.error('获取统计数据失败:', e.message);
+    return { totalRecords: 0 };
+  }
+}
+
+// 获取数据列表
+function getData(limit = 1000) {
+  try {
+    const result = db.exec('SELECT timestamp, listener_count FROM listeners ORDER BY id DESC LIMIT ?', [limit]);
+
+    if (result.length === 0) return [];
+
+    const rows = result[0].values.map(row => ({
+      timestamp: row[0],
+      listenerCount: row[1]
+    }));
+
+    return rows.reverse(); // 按时间正序返回
+  } catch (e) {
+    console.error('获取数据列表失败:', e.message);
+    return [];
+  }
+}
+
+// 获取所有数据用于导出
+function getAllData() {
+  try {
+    const result = db.exec('SELECT timestamp, listener_count FROM listeners ORDER BY id ASC');
+
+    if (result.length === 0) return [];
+
+    return result[0].values.map(row => ({
+      timestamp: row[0],
+      listenerCount: row[1]
+    }));
+  } catch (e) {
+    console.error('获取所有数据失败:', e.message);
+    return [];
+  }
+}
+
+// 加载 Cookies
+async function loadCookies(page) {
+  try {
+    if (fs.existsSync(CONFIG.cookiesFile)) {
+      const cookies = JSON.parse(fs.readFileSync(CONFIG.cookiesFile, 'utf8'));
+      await page.setCookie(...cookies);
+      console.log('Cookies 已加载');
+      return true;
+    }
+  } catch (e) {
+    console.error('加载 Cookies 失败:', e.message);
+  }
+  return false;
+}
+
+// 保存 Cookies
+async function saveCookies(page) {
+  try {
+    const cookies = await page.cookies();
+    fs.writeFileSync(CONFIG.cookiesFile, JSON.stringify(cookies, null, 2));
+    console.log('Cookies 已保存');
+  } catch (e) {
+    console.error('保存 Cookies 失败:', e.message);
+  }
+}
+
+// 初始化浏览器
+async function initBrowser() {
+  console.log('启动浏览器...');
+  browser = await puppeteer.launch({
+    headless: 'new',
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu'
+    ]
+  });
+
+  page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 800 });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+  // 尝试加载 cookies
+  await loadCookies(page);
+
+  return { browser, page };
+}
+
+// 页面是否已加载标志
+let pageLoaded = false;
+
+// 加载或重新加载页面
+async function loadPage() {
+  try {
+    console.log('正在加载艺术中心首页...');
+    await page.goto(CONFIG.artistUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+
+    // 检查是否需要登录
+    const currentUrl = page.url();
+    if (currentUrl.includes('accounts.spotify.com') || currentUrl.includes('login')) {
+      console.log('检测到登录页面，需要登录');
+      scrapeStatus.needsLogin = true;
+      scrapeStatus.errorMessage = '登录已过期，需要重新登录';
+      scrapeStatus.lastError = new Date().toISOString();
+      scrapeStatus.consecutiveErrors++;
+      pageLoaded = false;
+      return false;
+    }
+
+    // 等待页面加载（增加等待时间，确保动态内容加载完成）
+    await new Promise(resolve => setTimeout(resolve, 8000));
+
+    // 等待收听数据出现
+    try {
+      await page.waitForFunction(() => {
+        const text = document.body.innerText;
+        return /\d+\s*people\s*listening/i.test(text) || /listening/i.test(text);
+      }, { timeout: 15000 });
+    } catch (e) {
+      console.log('等待数据超时，继续尝试...');
+    }
+
+    pageLoaded = true;
+    console.log('页面加载成功');
+
+    // 页面加载成功后保存一次 cookies(确保登录后的 session 被保存)
+    await saveCookies(page);
+
+    return true;
+  } catch (error) {
+    console.error('页面加载失败:', error.message);
+    pageLoaded = false;
+    return false;
+  }
+}
+
+// 抓取收听人数（优化版：不重复刷新页面）
+async function scrapeListeners() {
+  if (!page) {
+    console.error('页面未初始化');
+    scrapeStatus.errorMessage = '浏览器未初始化';
+    scrapeStatus.lastError = new Date().toISOString();
+    return null;
+  }
+
+  try {
+    // 如果页面未加载或连续失败超过10次，重新加载页面(提高容错,避免频繁重新加载丢失 session)
+    if (!pageLoaded || scrapeStatus.consecutiveErrors >= 10) {
+      const loaded = await loadPage();
+      if (!loaded) {
+        return null;
+      }
+      // 重置错误计数
+      scrapeStatus.consecutiveErrors = 0;
+    }
+
+    scrapeStatus.needsLogin = false;
+
+    // 直接抓取收听人数（不刷新页面）
+    const result = await page.evaluate(() => {
+      const allElements = document.querySelectorAll('span, div, p, h1, h2, h3, strong, b');
+
+      // 严格匹配固定格式："X person/people listening now"
+      const patterns = [
+        /([\d,]+)\s*people\s*listening\s*now/i,      // "5 people listening now"
+        /([\d,]+)\s*person\s*listening\s*now/i,      // "1 person listening now"
+      ];
+
+      for (const el of allElements) {
+        const text = el.textContent.trim();
+
+        for (const pattern of patterns) {
+          const match = text.match(pattern);
+          if (match) {
+            return {
+              count: parseInt(match[1].replace(/,/g, ''), 10),
+              text: text,
+              element: el.tagName
+            };
+          }
+        }
+      }
+
+      // 如果找不到，返回页面文本片段用于调试
+      return {
+        count: null,
+        debugText: document.body.innerText.substring(0, 500)
+      };
+    });
+
+    if (result && result.count !== null) {
+      const timestamp = new Date().toISOString();
+      saveData(timestamp, result.count);
+      console.log(`抓取成功: ${result.count} (元素: ${result.element || 'unknown'})`);
+
+      // 更新状态
+      scrapeStatus.lastSuccess = timestamp;
+      scrapeStatus.errorMessage = null;
+      scrapeStatus.consecutiveErrors = 0;
+
+      // ⚠️ 不再频繁保存 cookies,避免覆盖长期 session
+      // 只在登录时保存一次即可,后续抓取不再保存
+      // scrapeCount++;
+      // if (scrapeCount >= 10) {
+      //   await saveCookies(page);
+      //   scrapeCount = 0;
+      // }
+
+      return result.count;
+    } else {
+      // 抓取失败 - 输出调试信息
+      console.log('未找到收听人数数据');
+
+      // 每3次失败输出一次页面内容用于调试
+      if (scrapeStatus.consecutiveErrors % 3 === 0 && result?.debugText) {
+        console.log('=== 页面内容片段（调试）===');
+        console.log(result.debugText);
+        console.log('=== 调试信息结束 ===');
+      }
+
+      scrapeStatus.errorMessage = '页面已加载但未找到收听人数数据';
+      scrapeStatus.lastError = new Date().toISOString();
+      scrapeStatus.consecutiveErrors++;
+      return null;
+    }
+
+  } catch (error) {
+    console.error('抓取失败:', error.message);
+    scrapeStatus.errorMessage = error.message;
+    scrapeStatus.lastError = new Date().toISOString();
+    scrapeStatus.consecutiveErrors++;
+    // 抓取失败时标记页面需要重新加载
+    pageLoaded = false;
+    return null;
+  }
+}
+
+// 启动 API 服务
+function startServer() {
+  const app = express();
+
+  // 全局中间件
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // 获取统计数据
+  app.get('/api/stats', (req, res) => {
+    res.json(getStats());
+  });
+
+  // 获取所有数据
+  app.get('/api/data', (req, res) => {
+    const limit = parseInt(req.query.limit) || 1000;
+    const data = getData(limit);
+    res.json(data);
+  });
+
+  // 获取抓取状态
+  app.get('/api/status', (req, res) => {
+    const stats = getStats();
+    res.json({
+      ...scrapeStatus,
+      isRunning: !!page,
+      dataCount: stats.totalRecords,
+      lastDataTime: stats.latestTime
+    });
+  });
+
+  // 触发重新登录（打开浏览器窗口）
+  app.post('/api/login', async (req, res) => {
+    try {
+      // 关闭现有浏览器
+      if (browser) {
+        await browser.close();
+      }
+      
+      // 重新启动可见浏览器进行登录
+      console.log('启动可见浏览器进行登录...');
+      browser = await puppeteer.launch({
+        headless: false,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      page = await browser.newPage();
+      await page.setViewport({ width: 1280, height: 800 });
+      await page.goto('https://accounts.spotify.com/login');
+      
+      res.json({ 
+        success: true, 
+        message: '浏览器已打开，请在浏览器中登录 Spotify。登录成功后会自动保存 cookies。'
+      });
+      
+      // 等待用户登录（最多5分钟）
+      let loggedIn = false;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const url = page.url();
+        if (url.includes('artists.spotify.com') || url.includes('/home')) {
+          loggedIn = true;
+          break;
+        }
+      }
+      
+      if (loggedIn) {
+        await saveCookies(page);
+        console.log('登录成功，cookies 已保存');
+        scrapeStatus.needsLogin = false;
+        scrapeStatus.errorMessage = null;
+        
+        // 切换回无头模式
+        await browser.close();
+        await initBrowser();
+      }
+      
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // 保存上传的 cookies
+  app.post('/api/cookies', express.json(), (req, res) => {
+    try {
+      const cookies = req.body;
+      if (Array.isArray(cookies) && cookies.length > 0) {
+        fs.writeFileSync(CONFIG.cookiesFile, JSON.stringify(cookies, null, 2));
+        scrapeStatus.needsLogin = false;
+        scrapeStatus.errorMessage = null;
+        res.json({ success: true, message: 'Cookies 已保存，将在下次抓取时使用' });
+        
+        // 重新加载 cookies
+        loadCookies(page).then(() => {
+          console.log('新 cookies 已加载');
+        });
+      } else {
+        res.status(400).json({ success: false, message: '无效的 cookies 格式' });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // 下载 CSV
+  app.get('/api/download/csv', (req, res) => {
+    const data = getAllData();
+    const headers = 'timestamp,listenerCount\n';
+    const rows = data.map(d => `${d.timestamp},${d.listenerCount}`).join('\n');
+    const csv = headers + rows;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=spotify-listeners-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csv);
+  });
+
+  // ===== 高级分析 API =====
+
+  // 时段分析（按小时统计平均值）
+  app.get('/api/analytics/hourly', (req, res) => {
+    try {
+      const result = db.exec(`
+        SELECT
+          CAST(strftime('%H', timestamp) AS INTEGER) as hour,
+          AVG(listener_count) as avgCount,
+          MAX(listener_count) as maxCount,
+          MIN(listener_count) as minCount,
+          COUNT(*) as samples
+        FROM listeners
+        GROUP BY hour
+        ORDER BY hour
+      `);
+
+      if (result.length === 0) {
+        return res.json([]);
+      }
+
+      const hourlyData = result[0].values.map(row => ({
+        hour: row[0],
+        avgCount: Math.round(row[1]),
+        maxCount: row[2],
+        minCount: row[3],
+        samples: row[4]
+      }));
+
+      res.json(hourlyData);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 趋势分析（最近 N 小时的增长率）
+  app.get('/api/analytics/trend', (req, res) => {
+    try {
+      const hours = parseInt(req.query.hours) || 1;
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+      const result = db.exec(`
+        SELECT AVG(listener_count) as avgCount
+        FROM listeners
+        WHERE timestamp >= ?
+      `, [cutoff]);
+
+      const recentAvg = result.length > 0 && result[0].values.length > 0
+        ? result[0].values[0][0]
+        : 0;
+
+      const previousCutoff = new Date(Date.now() - hours * 2 * 60 * 60 * 1000).toISOString();
+      const previousResult = db.exec(`
+        SELECT AVG(listener_count) as avgCount
+        FROM listeners
+        WHERE timestamp >= ? AND timestamp < ?
+      `, [previousCutoff, cutoff]);
+
+      const previousAvg = previousResult.length > 0 && previousResult[0].values.length > 0
+        ? previousResult[0].values[0][0]
+        : 0;
+
+      const trendPercent = previousAvg > 0
+        ? ((recentAvg - previousAvg) / previousAvg * 100).toFixed(2)
+        : 0;
+
+      res.json({
+        recentAvg: Math.round(recentAvg),
+        previousAvg: Math.round(previousAvg),
+        trendPercent: parseFloat(trendPercent),
+        direction: trendPercent > 5 ? 'up' : trendPercent < -5 ? 'down' : 'stable',
+        hours: hours
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 峰值分析（找出历史峰值时刻）
+  app.get('/api/analytics/peaks', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 10;
+
+      const result = db.exec(`
+        SELECT timestamp, listener_count,
+               strftime('%w', timestamp) as dayOfWeek,
+               strftime('%H', timestamp) as hour
+        FROM listeners
+        ORDER BY listener_count DESC
+        LIMIT ?
+      `, [limit]);
+
+      if (result.length === 0) {
+        return res.json([]);
+      }
+
+      const peaks = result[0].values.map(row => ({
+        timestamp: row[0],
+        listenerCount: row[1],
+        dayOfWeek: parseInt(row[2]),
+        hour: parseInt(row[3]),
+        date: new Date(row[0]).toLocaleString('zh-CN')
+      }));
+
+      res.json(peaks);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 日对比分析
+  app.get('/api/analytics/daily-comparison', (req, res) => {
+    try {
+      const result = db.exec(`
+        SELECT
+          DATE(timestamp) as date,
+          AVG(listener_count) as avgCount,
+          MAX(listener_count) as maxCount,
+          MIN(listener_count) as minCount,
+          COUNT(*) as samples
+        FROM listeners
+        WHERE timestamp >= datetime('now', '-7 days')
+        GROUP BY date
+        ORDER BY date DESC
+      `);
+
+      if (result.length === 0) {
+        return res.json([]);
+      }
+
+      const dailyData = result[0].values.map(row => ({
+        date: row[0],
+        avgCount: Math.round(row[1]),
+        maxCount: row[2],
+        minCount: row[3],
+        samples: row[4]
+      }));
+
+      res.json(dailyData);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 实时监控数据（最近5分钟）
+  app.get('/api/realtime', (req, res) => {
+    try {
+      const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      const result = db.exec(`
+        SELECT timestamp, listener_count
+        FROM listeners
+        WHERE timestamp >= ?
+        ORDER BY id DESC
+      `, [cutoff]);
+
+      if (result.length === 0) {
+        return res.json([]);
+      }
+
+      const realtimeData = result[0].values.map(row => ({
+        timestamp: row[0],
+        listenerCount: row[1]
+      }));
+
+      res.json(realtimeData.reverse());
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 商用级前端 Dashboard (新版)
+  app.get('/pro', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+  });
+
+  // Dashboard 首页 - 现代化设计 (旧版，保留兼容)
+  app.get('/', (req, res) => {
+    res.send(`
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spotify Listeners Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Real-time Spotify listener tracking dashboard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+      color: #ffffff;
+      padding: 24px;
+      background-attachment: fixed;
+    }
+
+    /* 动态背景 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(29, 185, 84, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(29, 185, 84, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(30, 215, 96, 0.05) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Sidebar Components */
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .system-info-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .info-label { color: rgba(255, 255, 255, 0.5); }
+    .info-value { color: #fff; font-weight: 500; font-family: monospace; }
+
+    /* Live Event Log */
+    .event-log {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      height: 300px;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .event-item {
+      border-left: 2px solid #333;
+      padding-left: 8px;
+      padding-bottom: 4px;
+    }
+
+    .event-item.info { border-color: #3b82f6; }
+    .event-item.success { border-color: #1DB954; }
+    .event-item.warning { border-color: #f59e0b; }
+    .event-item.error { border-color: #ef4444; }
+
+    .event-time { color: rgba(255, 255, 255, 0.3); margin-right: 6px; }
+    .event-msg { color: rgba(255, 255, 255, 0.8); word-break: break-all; }
+
+    /* Growth Trends */
+    .growth-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .growth-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .growth-label { font-size: 10px; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px; }
+    .growth-value { font-size: 14px; font-weight: 700; }
+    .growth-value.up { color: #1DB954; }
+    .growth-value.down { color: #ef4444; }
+    .growth-pct { font-size: 10px; margin-top: 2px; opacity: 0.8; }
+
+    /* Header Styling */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(29, 185, 84, 0.4);
+    }
+
+    .logo svg {
+      width: 28px;
+      height: 28px;
+      fill: white;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1DB954, #1ed760, #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(29, 185, 84, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #1DB954;
+      margin-left: auto;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #1DB954;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(29, 185, 84, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(29, 185, 84, 0.4);
+      background: linear-gradient(135deg, rgba(29, 185, 84, 0.1), rgba(29, 185, 84, 0.02));
+    }
+
+    .stat-card.highlight {
+      background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.05));
+      border-color: rgba(29, 185, 84, 0.4);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(29, 185, 84, 0.3), rgba(29, 185, 84, 0.1));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #1DB954;
+    }
+
+    .stat-content {
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .stat-card.highlight .stat-value {
+      background: linear-gradient(135deg, #1DB954, #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .percentile-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(29, 185, 84, 0.2);
+      color: #1DB954;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    /* Data Table */
+    .table-container {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      margin-top: 24px;
+      overflow: hidden;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th, .data-table td {
+      padding: 12px 20px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .data-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.4);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .data-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .trend-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .trend-up { background: rgba(29, 185, 84, 0.1); color: #1DB954; }
+    .trend-down { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    /* Chart Section */
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .chart-subtitle {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 4px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+
+    /* Range Selector */
+    .range-selector {
+      display: flex;
+      gap: 8px;
+    }
+
+    .range-btn {
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .range-btn:hover {
+      background: rgba(29, 185, 84, 0.1);
+      border-color: rgba(29, 185, 84, 0.3);
+      color: #1DB954;
+    }
+
+    .range-btn.active {
+      background: rgba(29, 185, 84, 0.2);
+      border-color: #1DB954;
+      color: #1DB954;
+    }
+
+    /* Analytics Grid */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .analytics-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .analytics-icon {
+      font-size: 32px;
+    }
+
+    .analytics-info {
+      flex: 1;
+    }
+
+    .analytics-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .analytics-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .analytics-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+    }
+
+    .analytics-section {
+      margin-bottom: 24px;
+    }
+
+    .analytics-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .analytics-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .time-slots {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .time-slot {
+      text-align: center;
+      padding: 16px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .slot-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .slot-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .slot-time {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+    }
+
+    .slot-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1DB954;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .time-slots {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Links Section */
+    .links-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      border-radius: 12px;
+      color: #1DB954;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .link-btn:hover {
+      background: rgba(29, 185, 84, 0.2);
+      border-color: #1DB954;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(29, 185, 84, 0.2);
+    }
+
+    .link-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Update Time */
+    .update-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .update-time svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Error Banner */
+    .error-banner {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-banner.warning {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .error-icon {
+      font-size: 24px;
+    }
+
+    .error-content {
+      flex: 1;
+    }
+
+    .error-title {
+      font-weight: 600;
+      color: #ef4444;
+      margin-bottom: 4px;
+    }
+
+    .error-banner.warning .error-title {
+      color: #f59e0b;
+    }
+
+    .error-message {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .error-action {
+      padding: 8px 16px;
+      background: #ef4444;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .error-action:hover {
+      background: #dc2626;
+    }
+
+    .error-banner.warning .error-action:hover {
+      background: #d97706;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal {
+      background: #1a1a2e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 600px;
+      padding: 32px;
+      position: relative;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    .modal-close:hover {
+      color: white;
+    }
+
+    .cookie-guide {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .cookie-guide ol {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    .cookie-guide code {
+      background: rgba(29, 185, 84, 0.2);
+      color: #1DB954;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    #cookie-input {
+      width: 100%;
+      height: 160px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      resize: none;
+      margin-bottom: 20px;
+    }
+
+    #cookie-input:focus {
+      outline: none;
+      border-color: #1DB954;
+      box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-primary {
+      background: #1DB954;
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1ed760;
+      transform: translateY(-1px);
+    }
+
+    .login-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .login-opt-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .login-opt-card:hover {
+      background: rgba(29, 185, 84, 0.1);
+      border-color: #1DB954;
+    }
+
+    .login-opt-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .login-opt-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .login-opt-desc {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Loading State */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(29, 185, 84, 0.2);
+      border-top-color: #1DB954;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      h1 { font-size: 22px; }
+      .stat-value { font-size: 26px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .chart-container { height: 250px; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .header { flex-wrap: wrap; }
+      .live-badge { margin-left: 0; margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+    </div>
+    <div>
+      <h1>Spotify Listeners</h1>
+    </div>
+    <div class="live-badge" id="backend-status">
+      <span class="live-dot"></span>
+      实时监控中
+    </div>
+  </header>
+
+  <!-- Error Banner -->
+  <div id="error-display" style="display: none;"></div>
+
+  <!-- Stats Cards -->
+  <div id="stats" class="card">
+    <div class="loading">
+      <div class="spinner"></div>
+      加载数据中...
+    </div>
+  </div>
+
+  <!-- Prediction Card -->
+  <div id="prediction" class="card" style="display:none;">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">🔮 今日预测</div>
+        <div class="chart-subtitle">基于当前趋势估算</div>
+      </div>
+    </div>
+    <div id="prediction-content"></div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">📈 收听趋势</div>
+        <div class="chart-subtitle" id="chart-subtitle">数据加载中...</div>
+      </div>
+      <div class="range-selector">
+        <button class="range-btn active" data-range="120">1小时</button>
+        <button class="range-btn" data-range="720">6小时</button>
+        <button class="range-btn" data-range="1440">12小时</button>
+        <button class="range-btn" data-range="2880">24小时</button>
+        <button class="range-btn" data-range="0">全部</button>
+      </div>
+    </div>
+    <div class="chart-container" style="height: 350px;">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Analytics -->
+  <div id="analytics" class="card" style="display:none;">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">📊 数据分析</div>
+        <div class="chart-subtitle">深度洞察</div>
+      </div>
+    </div>
+    <div id="analytics-content"></div>
+  </div>
+
+  <!-- Links -->
+  <div class="card">
+    <div class="links-grid">
+      <a href="/api/stats" target="_blank" class="link-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        统计 JSON
+      </a>
+      <a href="/api/data?limit=100" target="_blank" class="link-btn">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
+        最近 100 条
+      </a>
+      <a href="/api/download/csv" class="link-btn">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        下载 CSV
+      </a>
+      <button onclick="handleLogin()" class="link-btn" style="border:none; cursor:pointer;">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+        重新登录
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    Spotify Listeners Tracker · Commercial Grade Dashboard
+  </footer>
+</div>
+
+<!-- Cookie Modal -->
+<div id="cookie-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('cookie-modal')">&times;</button>
+    <div class="modal-title">🍪 远程 Cookie 上传</div>
+    <div class="cookie-guide">
+      为了在 Linux 等无界面环境下登录，请执行以下步骤：
+      <ol>
+        <li>在您的电脑浏览器登录 Spotify for Artists。</li>
+        <li>使用 <code>EditThisCookie</code> 或类似插件导出 JSON 格式的 Cookies。</li>
+        <li>将导出的 JSON 文本粘贴到下方。</li>
+      </ol>
+    </div>
+    <textarea id="cookie-input" placeholder="将 JSON 格式的 Cookies 粘贴到这里..."></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('cookie-modal')">取消</button>
+      <button class="btn btn-primary" onclick="uploadCookies()">完成并应用</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login Options Modal -->
+<div id="login-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
+    <div class="modal-title">🔐 选择登录方式</div>
+    <div class="login-options">
+      <div class="login-opt-card" onclick="startLocalLogin()">
+        <div class="login-opt-icon">🖥️</div>
+        <div class="login-opt-title">本地模式</div>
+        <div class="login-opt-desc">在服务器上打开浏览器 (适用于 Windows/Mac)</div>
+      </div>
+      <div class="login-opt-card" onclick="openCookieModal()">
+        <div class="login-opt-icon">☁️</div>
+        <div class="login-opt-title">远程模式</div>
+        <div class="login-opt-desc">上传 Cookies (适用于 Linux/Headless 用户)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let chart;
+let currentRange = 120;
+let allData = [];
+
+// 范围选择器
+document.querySelectorAll('.range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentRange = parseInt(btn.dataset.range);
+    loadChart();
+  });
+});
+
+async function checkStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const display = document.getElementById('error-display');
+    const badge = document.getElementById('backend-status');
+    
+
+    if (s.errorMessage) {
+      display.style.display = 'block';
+      const isWarning = s.consecutiveErrors < 3;
+      display.className = 'error-banner ' + (isWarning ? 'warning' : '');
+      display.innerHTML =
+        '<div class="error-icon">' + (isWarning ? '⚠️' : '🚨') + '</div>' +
+        '<div class="error-content">' +
+          '<div class="error-title">' + s.errorMessage + '</div>' +
+          '<div class="error-message">最后成功抓取: ' + (s.lastSuccess ? new Date(s.lastSuccess).toLocaleString() : '从无') + '</div>' +
+        '</div>' +
+        '<button class="error-action" onclick="handleLogin()">重新登录 / 上传 Cookie</button>';
+      badge.style.color = isWarning ? '#f59e0b' : '#ef4444';
+      badge.innerHTML = '<span class="live-dot" style="background:' + (isWarning ? '#f59e0b' : '#ef4444') + '"></span>状态异常';
+    } else {
+      display.style.display = 'none';
+      badge.style.color = '#1DB954';
+      badge.innerHTML = '<span class="live-dot"></span>实时监控中';
+    }
+  } catch (e) {
+    console.error('获取状态失败:', e);
+  }
+}
+
+
+
+async function handleLogin() {
+  document.getElementById('login-modal').style.display = 'flex';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function openCookieModal() {
+  closeModal('login-modal');
+  document.getElementById('cookie-modal').style.display = 'flex';
+}
+
+async function startLocalLogin() {
+  if (!confirm('这将在服务器上打开一个浏览器窗口。确定继续吗？')) return;
+  closeModal('login-modal');
+  
+  try {
+    const res = await fetch('/api/login', { method: 'POST' });
+    const data = await res.json();
+    alert(data.message);
+  } catch (e) {
+    alert('请求登录失败: ' + e.message);
+  }
+}
+
+async function uploadCookies() {
+  const input = document.getElementById('cookie-input').value.trim();
+  if (!input) return alert('请输入 Cookie 数据');
+  
+  let cookies;
+  try {
+    cookies = JSON.parse(input);
+  } catch (e) {
+    return alert('JSON 格式错误，请确保复制的是有效的 JSON 数组');
+  }
+
+  try {
+    const res = await fetch('/api/cookies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cookies)
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(data.message);
+      closeModal('cookie-modal');
+    } else {
+      alert('上传失败: ' + data.message);
+    }
+  } catch (e) {
+    alert('上传请求失败: ' + e.message);
+  }
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const s = await res.json();
+
+    if (!s || s.totalRecords === 0) {
+      document.getElementById('stats').innerHTML = '<div class="loading">暂无数据，等待首次抓取...</div>';
+      return;
+    }
+
+    document.getElementById('stats').innerHTML = \`
+      <div class="stats-grid">
+        <div class="stat-card highlight">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">当前收听</div>
+            <div class="stat-value">\${s.latestCount.toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">历史最高</div>
+            <div class="stat-value">\${s.maxCount.toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">最低记录</div>
+            <div class="stat-value">\${s.minCount.toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">总记录数</div>
+            <div class="stat-value">\${s.totalRecords.toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">平均值</div>
+            <div class="stat-value">\${s.avgCount.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+      <div class="update-time">
+        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        数据更新于：\${new Date(s.latestTime).toLocaleString()}
+      </div>
+    \`;
+  } catch (e) {
+    console.error('加载统计失败:', e);
+  }
+}
+
+
+
+async function loadChart() {
+  try {
+    const limit = currentRange === 0 ? 10000 : currentRange;
+    const res = await fetch('/api/data?limit=' + limit);
+    allData = await res.json();
+
+    if (allData.length === 0) return;
+
+    // 更新副标题
+    const rangeText = currentRange === 0 ? '全量数据历史' : '最近 ' + allData.length + ' 个采集点';
+    document.getElementById('chart-subtitle').textContent = rangeText;
+
+    const labels = allData.map(d => {
+      const date = new Date(d.timestamp);
+      return currentRange > 720 || currentRange === 0 
+        ? date.toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'numeric', minute:'numeric'})
+        : date.toLocaleTimeString();
+    });
+    const values = allData.map(d => d.listenerCount);
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const gradientFill = ctx.createLinearGradient(0, 0, 0, 350);
+    gradientFill.addColorStop(0, 'rgba(29, 185, 84, 0.3)');
+    gradientFill.addColorStop(1, 'rgba(29, 185, 84, 0)');
+
+    if (!chart) {
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderColor: '#1DB954',
+            borderWidth: 2,
+            backgroundColor: gradientFill,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#1DB954',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 500 },
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#fff',
+              bodyColor: '#1DB954',
+              borderColor: 'rgba(29, 185, 84, 0.3)',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: ctx => ctx.parsed.y.toLocaleString() + ' 人正在收听'
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.5)', font: { size: 11 } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 8, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    } else {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.update('none');
+    }
+
+    // 加载预测和分析
+    loadPrediction(allData);
+    loadAnalytics(allData);
+  } catch (e) {
+    console.error('加载图表失败:', e);
+  }
+}
+
+
+
+function loadPrediction(data) {
+  if (data.length < 10) {
+    document.getElementById('prediction').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('prediction').style.display = 'block';
+
+  // 计算今日数据
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayData = data.filter(d => new Date(d.timestamp) >= todayStart);
+  
+  // 计算平均收听人数
+  const avgListeners = todayData.length > 0 
+    ? todayData.reduce((sum, d) => sum + d.listenerCount, 0) / todayData.length 
+    : data.slice(-100).reduce((sum, d) => sum + d.listenerCount, 0) / Math.min(data.length, 100);
+  
+  // 已经过去的时间（小时）
+  const hoursElapsed = (now - todayStart) / (1000 * 60 * 60);
+  
+  // 预测累计播放（以"人·分钟"为单位）
+  const currentPlayMinutes = todayData.reduce((sum, d) => sum + d.listenerCount, 0) * 5 / 60;
+  const remainingHours = 24 - hoursElapsed;
+  const predictedRemainingMinutes = avgListeners * remainingHours * 60;
+  const predictedTotalMinutes = currentPlayMinutes + predictedRemainingMinutes;
+  
+  // 趋势判断
+  const recentAvg = data.slice(-12).reduce((s, d) => s + d.listenerCount, 0) / Math.min(12, data.length);
+  const olderAvg = data.slice(-60, -12).reduce((s, d) => s + d.listenerCount, 0) / Math.min(48, Math.max(1, data.length - 12));
+  const trendPercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1) : 0;
+  const trend = trendPercent > 5 ? '📈 爆发增长' : trendPercent < -5 ? '📉 快速回落' : '➡️ 趋于平稳';
+
+  // 预测今日播放次数（假设每个听众平均听3分钟）
+  const predictedStreams = Math.round(predictedTotalMinutes / 3);
+
+  document.getElementById('prediction-content').innerHTML = \`
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="stat-icon">🌟</div>
+        <div class="stat-content">
+          <div class="stat-label">今日预计播放次数</div>
+          <div class="stat-value">\${predictedStreams.toLocaleString()}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <div class="stat-label">当前势能</div>
+          <div class="stat-value">\${trend}</div>
+          <div style="font-size:12px;color:\${trendPercent > 0 ? '#1DB954' : '#ef4444'}">\${trendPercent > 0 ? '+' : ''}\${trendPercent}% (较上小时)</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-content">
+          <div class="stat-label">今日活跃时长</div>
+          <div class="stat-value">\${Math.round(predictedTotalMinutes).toLocaleString()} 分钟</div>
+        </div>
+      </div>
+    </div>
+  \`;
+}
+
+function loadAnalytics(data) {
+  if (data.length < 20) {
+    document.getElementById('analytics').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('analytics').style.display = 'block';
+
+  const values = data.map(d => d.listenerCount);
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+  const stdDev = Math.sqrt(variance);
+  const volatility = (stdDev / mean * 100).toFixed(1);
+
+  // 稳定性评估
+  const stabilityIndex = (100 - volatility).toFixed(1);
+  const stabilityLabel = stabilityIndex > 90 ? '卓越' : stabilityIndex > 70 ? '良好' : '波动剧烈';
+
+  // 增长率 (对比数据首尾)
+  const startChunk = values.slice(0, 10);
+  const endChunk = values.slice(-10);
+  const startAvg = startChunk.reduce((a, b) => a + b, 0) / startChunk.length;
+  const endAvg = endChunk.reduce((a, b) => a + b, 0) / endChunk.length;
+  const growthRate = startAvg > 0 ? ((endAvg - startAvg) / startAvg * 100).toFixed(1) : 0;
+
+  document.getElementById('analytics-content').innerHTML = \`
+    <div class="analytics-section">
+      <div class="analytics-section-title">⚖️ 全球收听表现核心指标</div>
+      <div class="analytics-grid">
+        <div class="analytics-item">
+          <div class="analytics-icon">📈</div>
+          <div class="analytics-info">
+            <div class="analytics-label">阶段性增长率</div>
+            <div class="analytics-value" style="color:\${growthRate > 0 ? '#1DB954' : '#ef4444'}">\${growthRate > 0 ? '+' : ''}\${growthRate}%</div>
+            <div class="analytics-sub">基于当前展示范围</div>
+          </div>
+        </div>
+        <div class="analytics-item">
+          <div class="analytics-icon">🛡️</div>
+          <div class="analytics-info">
+            <div class="analytics-label">收听稳定性</div>
+            <div class="analytics-value">\${stabilityIndex}%</div>
+            <div class="analytics-sub">状态: \${stabilityLabel}</div>
+          </div>
+        </div>
+        <div class="analytics-item">
+          <div class="analytics-icon">💎</div>
+          <div class="analytics-info">
+            <div class="analytics-label">峰值占有率</div>
+            <div class="analytics-value">\${((mean/max)*100).toFixed(1)}%</div>
+            <div class="analytics-sub">均值对比历史最高</div>
+          </div>
+        </div>
+        <div class="analytics-item">
+          <div class="analytics-icon">🧬</div>
+          <div class="analytics-info">
+            <div class="analytics-label">变异系数</div>
+            <div class="analytics-value">\${volatility}%</div>
+            <div class="analytics-sub">数值越低代表表现越稳</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  \`;
+}
+
+async function refresh() {
+  await Promise.all([loadStats(), loadChart(), checkStatus()]);
+}
+
+// 自动刷新（每5秒）
+refresh();
+setInterval(refresh, 5000);
+</script>
+
+</body>
+</html>
+    `);
+  });
+
+  // 启动服务器
+  app.listen(CONFIG.port, () => {
+    console.log(`服务器已启动: http://localhost:${CONFIG.port}`);
+  });
+}
+
+// 浏览器崩溃恢复
+async function ensureBrowser() {
+  try {
+    if (!browser || !browser.isConnected()) {
+      console.log('检测到浏览器未运行，正在重启...');
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (e) {
+          // 忽略关闭错误
+        }
+      }
+      await initBrowser();
+    }
+  } catch (e) {
+    console.error('浏览器恢复失败:', e.message);
+  }
+}
+
+// 带恢复机制的抓取循环
+async function scrapeWithRecovery() {
+  try {
+    await ensureBrowser();
+    await scrapeListeners();
+  } catch (e) {
+    console.error('抓取过程出错:', e.message);
+    scrapeStatus.errorMessage = e.message;
+    scrapeStatus.lastError = new Date().toISOString();
+    scrapeStatus.consecutiveErrors++;
+  }
+}
+
+// 启动定时抓取（使用恢复机制）
+function startScraping() {
+  console.log(`开始定时抓取，间隔: ${CONFIG.scrapeInterval / 1000} 秒`);
+
+  // 立即执行一次
+  scrapeWithRecovery();
+
+  // 定时执行
+  setInterval(scrapeWithRecovery, CONFIG.scrapeInterval);
+}
+
+// 初始化并启动
+async function main() {
+  console.log('=== Spotify Listeners Tracker ===');
+  console.log('正在启动服务...\n');
+
+  // 初始化数据库
+  await initDatabase();
+
+  // 启动 Web 服务器
+  startServer();
+
+  // 初始化浏览器
+  await initBrowser();
+
+  // 首次加载页面
+  await loadPage();
+
+  // 启动定时抓取
+  startScraping();
+
+  console.log('\n服务已启动成功！');
+}
+
+// 优雅退出
+process.on('SIGINT', async () => {
+  console.log('\n正在关闭...');
+  if (db) {
+    saveDatabaseToFile();
+    db.close();
+  }
+  if (browser) await browser.close();
+  process.exit(0);
+});
+
+// 启动
+main().catch(console.error);

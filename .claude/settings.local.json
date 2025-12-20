@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check:*)",
+      "Bash(npm install:*)",
+      "Bash(copy:*)",
+      "Bash(npm run migrate:*)",
+      "Bash(cat:*)",
+      "Bash(node index.js:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Name node -Force\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(dir /b:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
