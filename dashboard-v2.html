@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spotify Real-Time Analytics Dashboard</title>
+  <title>Spotify 实时分析仪表盘</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,8 +17,6 @@
 
     :root {
       --spotify-green: #1DB954;
-      --spotify-dark: #191414;
-      --spotify-darker: #121212;
       --bg-primary: #0a0a0a;
       --bg-secondary: #1a1a1a;
       --bg-tertiary: #252525;
@@ -52,7 +50,7 @@
     }
 
     .navbar-content {
-      max-width: 1600px;
+      max-width: 1800px;
       margin: 0 auto;
       padding: 0 32px;
       display: flex;
@@ -95,6 +93,41 @@
       margin-top: 2px;
     }
 
+    .navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .lang-switch {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-tertiary);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .lang-btn.active {
+      background: var(--spotify-green);
+      color: white;
+    }
+
     .status-badge {
       display: flex;
       align-items: center;
@@ -123,20 +156,40 @@
 
     /* 主容器 */
     .container {
-      max-width: 1600px;
+      max-width: 1800px;
       margin: 0 auto;
       padding: 32px;
     }
 
-    /* Hero 区域 - 大数字展示 */
+    /* 分区标题 */
+    .section-header {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* Hero 区域 */
     .hero-section {
       margin-bottom: 32px;
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 24px;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 20px;
     }
 
     .hero-card {
@@ -181,7 +234,7 @@
     }
 
     .hero-value {
-      font-size: 64px;
+      font-size: 56px;
       font-weight: 800;
       line-height: 1;
       margin-bottom: 16px;
@@ -208,10 +261,6 @@
       color: var(--danger);
     }
 
-    .trend-icon {
-      font-size: 18px;
-    }
-
     /* 统计卡片网格 */
     .stats-section {
       margin-bottom: 32px;
@@ -219,15 +268,15 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
     }
 
     .stat-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 24px;
+      padding: 20px;
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
@@ -258,11 +307,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .stat-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
@@ -270,26 +319,43 @@
     }
 
     .stat-icon {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       background: rgba(29, 185, 84, 0.15);
-      border-radius: 10px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .stat-value {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       margin-bottom: 8px;
       letter-spacing: -1px;
     }
 
-    .stat-subtitle {
+    .stat-change {
       font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-change.positive {
+      color: var(--success);
+    }
+
+    .stat-change.negative {
+      color: var(--danger);
+    }
+
+    .stat-subtitle {
+      font-size: 11px;
       color: var(--text-tertiary);
+      margin-top: 4px;
     }
 
     /* 图表区域 */
@@ -300,51 +366,56 @@
     .chart-grid {
       display: grid;
       grid-template-columns: 2fr 1fr;
-      gap: 24px;
+      gap: 20px;
+      margin-bottom: 20px;
     }
 
     .chart-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: 20px;
-      padding: 28px;
+      padding: 24px;
+    }
+
+    .chart-card.full {
+      grid-column: 1 / -1;
     }
 
     .chart-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .chart-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.5px;
     }
 
     .chart-subtitle {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-tertiary);
       margin-top: 4px;
     }
 
     .time-selector {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       background: var(--bg-tertiary);
       padding: 4px;
-      border-radius: 12px;
+      border-radius: 10px;
     }
 
     .time-btn {
-      padding: 8px 16px;
+      padding: 6px 14px;
       background: transparent;
       border: none;
       color: var(--text-secondary);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -360,102 +431,92 @@
 
     .chart-container {
       position: relative;
-      height: 350px;
+      height: 300px;
+    }
+
+    .chart-container.tall {
+      height: 400px;
+    }
+
+    /* 对比表格 */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-table th {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .comparison-table td {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .comparison-table tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .comparison-value {
+      font-size: 18px;
+      font-weight: 700;
     }
 
     /* 热力图 */
-    .heatmap-grid {
+    .heatmap {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-    }
-
-    .heatmap-day {
-      text-align: center;
+      grid-template-columns: auto repeat(24, 1fr);
+      gap: 4px;
+      margin-top: 16px;
     }
 
     .heatmap-label {
       font-size: 11px;
       color: var(--text-tertiary);
-      margin-bottom: 8px;
-      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
     }
 
-    .heatmap-blocks {
-      display: grid;
-      grid-template-rows: repeat(4, 1fr);
-      gap: 4px;
+    .heatmap-hour {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-align: center;
+      padding: 4px;
     }
 
-    .heatmap-block {
+    .heatmap-cell {
       aspect-ratio: 1;
       background: var(--bg-tertiary);
       border-radius: 4px;
-      position: relative;
       cursor: pointer;
       transition: all 0.2s ease;
-    }
-
-    .heatmap-block:hover {
-      transform: scale(1.2);
-      z-index: 10;
-    }
-
-    .heatmap-block.level-0 { background: rgba(29, 185, 84, 0.1); }
-    .heatmap-block.level-1 { background: rgba(29, 185, 84, 0.3); }
-    .heatmap-block.level-2 { background: rgba(29, 185, 84, 0.5); }
-    .heatmap-block.level-3 { background: rgba(29, 185, 84, 0.7); }
-    .heatmap-block.level-4 { background: rgba(29, 185, 84, 0.9); }
-
-    /* 洞察卡片 */
-    .insights-section {
-      margin-bottom: 32px;
-    }
-
-    .insights-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    .insight-card {
-      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 24px;
       position: relative;
     }
 
-    .insight-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.05));
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 16px;
+    .heatmap-cell:hover {
+      transform: scale(1.3);
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
-    .insight-title {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .insight-description {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    .insight-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--spotify-green);
-      margin-top: 12px;
-    }
+    .heatmap-cell.level-0 { background: rgba(29, 185, 84, 0.1); }
+    .heatmap-cell.level-1 { background: rgba(29, 185, 84, 0.3); }
+    .heatmap-cell.level-2 { background: rgba(29, 185, 84, 0.5); }
+    .heatmap-cell.level-3 { background: rgba(29, 185, 84, 0.7); }
+    .heatmap-cell.level-4 { background: rgba(29, 185, 84, 0.9); }
 
     /* 操作按钮 */
     .actions-section {
@@ -464,21 +525,21 @@
 
     .actions-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
     }
 
     .action-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding: 16px 24px;
+      gap: 8px;
+      padding: 14px 20px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: 12px;
       color: var(--text-primary);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       text-decoration: none;
       transition: all 0.3s ease;
@@ -502,8 +563,8 @@
     }
 
     .action-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       fill: currentColor;
     }
 
@@ -522,15 +583,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 60px;
+      padding: 40px;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid rgba(29, 185, 84, 0.1);
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(29, 185, 84, 0.1);
       border-top-color: var(--spotify-green);
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -587,10 +648,10 @@
       transform: translateY(-1px);
     }
 
-    /* 响应式设计 */
-    @media (max-width: 1200px) {
+    /* 响应式 */
+    @media (max-width: 1400px) {
       .hero-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
 
       .chart-grid {
@@ -605,31 +666,25 @@
 
       .navbar-content {
         padding: 0 20px;
+        flex-wrap: wrap;
+        gap: 12px;
       }
 
-      .hero-value {
-        font-size: 48px;
-      }
-
-      .stat-value {
-        font-size: 24px;
+      .hero-grid {
+        grid-template-columns: 1fr;
       }
 
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .time-selector {
-        flex-wrap: wrap;
+      .hero-value {
+        font-size: 40px;
       }
     }
 
     @media (max-width: 480px) {
       .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .actions-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -645,13 +700,19 @@
           <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
         </div>
         <div class="brand-info">
-          <h1>Real-Time Analytics</h1>
-          <p>Spotify Listener Tracking Dashboard</p>
+          <h1 data-i18n="app.title">实时分析</h1>
+          <p data-i18n="app.subtitle">Spotify 听众追踪仪表盘</p>
         </div>
       </div>
-      <div class="status-badge" id="status-badge">
-        <span class="status-dot"></span>
-        <span>Live Monitoring</span>
+      <div class="navbar-actions">
+        <div class="lang-switch">
+          <button class="lang-btn active" data-lang="zh">中文</button>
+          <button class="lang-btn" data-lang="en">English</button>
+        </div>
+        <div class="status-badge" id="status-badge">
+          <span class="status-dot"></span>
+          <span data-i18n="status.live">实时监控</span>
+        </div>
       </div>
     </div>
   </nav>
@@ -667,97 +728,343 @@
       <div class="hero-grid" id="hero-section">
         <div class="loading">
           <div class="spinner"></div>
-          <p style="color: var(--text-secondary);">Loading data...</p>
+          <p style="color: var(--text-secondary);" data-i18n="loading">加载中...</p>
         </div>
       </div>
     </section>
 
-    <!-- 统计卡片 -->
+    <!-- 核心指标 -->
     <section class="stats-section">
-      <div class="stats-grid" id="stats-grid">
-        <!-- 动态加载 -->
+      <div class="section-header">
+        <div>
+          <div class="section-title" data-i18n="section.metrics">核心指标</div>
+          <div class="section-subtitle" data-i18n="section.metricsDesc">关键性能指标概览</div>
+        </div>
       </div>
+      <div class="stats-grid" id="stats-grid"></div>
     </section>
 
-    <!-- 图表区域 -->
+    <!-- 趋势分析 -->
     <section class="chart-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title" data-i18n="section.trends">趋势分析</div>
+          <div class="section-subtitle" data-i18n="section.trendsDesc">听众数量变化趋势</div>
+        </div>
+      </div>
       <div class="chart-grid">
-        <!-- 主图表 -->
         <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">📈 Listener Trends</div>
-              <div class="chart-subtitle" id="chart-subtitle">Real-time listener count over time</div>
+              <div class="chart-title" data-i18n="chart.timeline">时间序列</div>
+              <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化</div>
             </div>
             <div class="time-selector">
-              <button class="time-btn active" data-range="60">1h</button>
-              <button class="time-btn" data-range="360">6h</button>
-              <button class="time-btn" data-range="720">12h</button>
-              <button class="time-btn" data-range="1440">24h</button>
-              <button class="time-btn" data-range="0">All</button>
+              <button class="time-btn active" data-range="60" data-i18n="time.1h">1小时</button>
+              <button class="time-btn" data-range="360" data-i18n="time.6h">6小时</button>
+              <button class="time-btn" data-range="720" data-i18n="time.12h">12小时</button>
+              <button class="time-btn" data-range="1440" data-i18n="time.24h">24小时</button>
+              <button class="time-btn" data-range="0" data-i18n="time.all">全部</button>
             </div>
           </div>
-          <div class="chart-container">
+          <div class="chart-container tall">
             <canvas id="main-chart"></canvas>
           </div>
         </div>
 
-        <!-- 时段分析 -->
         <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">🕐 Peak Hours</div>
-              <div class="chart-subtitle">Average listeners by hour</div>
+              <div class="chart-title" data-i18n="chart.distribution">分布分析</div>
+              <div class="chart-subtitle" data-i18n="chart.distributionDesc">数据分布情况</div>
+            </div>
+          </div>
+          <div class="chart-container tall">
+            <canvas id="distribution-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title" data-i18n="chart.hourly">时段分析</div>
+              <div class="chart-subtitle" data-i18n="chart.hourlyDesc">每小时平均听众数</div>
             </div>
           </div>
           <div class="chart-container">
             <canvas id="hourly-chart"></canvas>
           </div>
         </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title" data-i18n="chart.growth">增长趋势</div>
+              <div class="chart-subtitle" data-i18n="chart.growthDesc">同比环比增长率</div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="growth-chart"></canvas>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 洞察卡片 -->
-    <section class="insights-section">
-      <div class="insights-grid" id="insights-grid">
-        <!-- 动态加载 -->
+    <!-- 数据洞察 -->
+    <section class="chart-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title" data-i18n="section.insights">数据洞察</div>
+          <div class="section-subtitle" data-i18n="section.insightsDesc">深度数据分析与对比</div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title" data-i18n="chart.comparison">时段对比</div>
+              <div class="chart-subtitle" data-i18n="chart.comparisonDesc">不同时间段数据对比</div>
+            </div>
+          </div>
+          <table class="comparison-table" id="comparison-table"></table>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title" data-i18n="chart.statistics">统计指标</div>
+              <div class="chart-subtitle" data-i18n="chart.statisticsDesc">详细统计数据</div>
+            </div>
+          </div>
+          <table class="comparison-table" id="statistics-table"></table>
+        </div>
       </div>
     </section>
 
     <!-- 操作按钮 -->
     <section class="actions-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title" data-i18n="section.actions">快捷操作</div>
+        </div>
+      </div>
       <div class="actions-grid">
         <a href="/api/stats" target="_blank" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-          API Stats
+          <span data-i18n="action.stats">统计 API</span>
         </a>
         <a href="/api/data?limit=100" target="_blank" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
-          Recent 100
+          <span data-i18n="action.recent">最近数据</span>
         </a>
         <a href="/api/download/csv" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          Export CSV
+          <span data-i18n="action.export">导出 CSV</span>
         </a>
         <button onclick="handleLogin()" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-          Re-login
+          <span data-i18n="action.login">重新登录</span>
         </button>
         <button onclick="handleClearData()" class="action-btn danger">
           <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          Clear Data
+          <span data-i18n="action.clear">清空数据</span>
         </button>
       </div>
     </section>
 
     <!-- 页脚 -->
-    <footer class="footer">
-      Spotify Real-Time Analytics · Powered by Claude Code
+    <footer class="footer" data-i18n="footer">
+      Spotify 实时分析 · Powered by Claude Code
     </footer>
   </div>
 
   <script>
-    let mainChart, hourlyChart;
+    // ========== 国际化 ==========
+    const i18n = {
+      zh: {
+        'app.title': '实时分析',
+        'app.subtitle': 'Spotify 听众追踪仪表盘',
+        'status.live': '实时监控',
+        'status.error': '状态异常',
+        'loading': '加载中...',
+        'section.metrics': '核心指标',
+        'section.metricsDesc': '关键性能指标概览',
+        'section.trends': '趋势分析',
+        'section.trendsDesc': '听众数量变化趋势',
+        'section.insights': '数据洞察',
+        'section.insightsDesc': '深度数据分析与对比',
+        'section.actions': '快捷操作',
+        'chart.timeline': '时间序列',
+        'chart.timelineDesc': '实时听众数量变化',
+        'chart.distribution': '分布分析',
+        'chart.distributionDesc': '数据分布情况',
+        'chart.hourly': '时段分析',
+        'chart.hourlyDesc': '每小时平均听众数',
+        'chart.growth': '增长趋势',
+        'chart.growthDesc': '同比环比增长率',
+        'chart.comparison': '时段对比',
+        'chart.comparisonDesc': '不同时间段数据对比',
+        'chart.statistics': '统计指标',
+        'chart.statisticsDesc': '详细统计数据',
+        'time.1h': '1小时',
+        'time.6h': '6小时',
+        'time.12h': '12小时',
+        'time.24h': '24小时',
+        'time.all': '全部',
+        'action.stats': '统计 API',
+        'action.recent': '最近数据',
+        'action.export': '导出 CSV',
+        'action.login': '重新登录',
+        'action.clear': '清空数据',
+        'footer': 'Spotify 实时分析 · Powered by Claude Code',
+        'hero.current': '当前听众',
+        'hero.peak': '今日峰值',
+        'hero.total': '总记录',
+        'hero.average': '平均值',
+        'hero.vs': '对比上小时',
+        'hero.allTime': '历史最高',
+        'hero.dataPoints': '数据点',
+        'hero.meanValue': '均值',
+        'metric.average': '平均值',
+        'metric.median': '中位数',
+        'metric.stdDev': '标准差',
+        'metric.variance': '方差',
+        'metric.range': '极差',
+        'metric.minimum': '最小值',
+        'metric.maximum': '最大值',
+        'metric.total': '总记录',
+        'metric.growth1h': '1小时增长',
+        'metric.growth6h': '6小时增长',
+        'metric.volatility': '波动率',
+        'metric.stability': '稳定性',
+        'comparison.current': '当前',
+        'comparison.1hourAgo': '1小时前',
+        'comparison.6hourAgo': '6小时前',
+        'comparison.12hourAgo': '12小时前',
+        'comparison.24hourAgo': '24小时前',
+        'comparison.change': '变化',
+        'stat.mean': '均值',
+        'stat.median': '中位数',
+        'stat.mode': '众数',
+        'stat.stdDev': '标准差',
+        'stat.variance': '方差',
+        'stat.cv': '变异系数',
+        'stat.range': '极差',
+        'stat.iqr': '四分位距',
+        'listeners': '听众',
+        'na': '暂无数据'
+      },
+      en: {
+        'app.title': 'Real-Time Analytics',
+        'app.subtitle': 'Spotify Listener Tracking Dashboard',
+        'status.live': 'Live Monitoring',
+        'status.error': 'Error',
+        'loading': 'Loading...',
+        'section.metrics': 'Key Metrics',
+        'section.metricsDesc': 'Core performance indicators overview',
+        'section.trends': 'Trend Analysis',
+        'section.trendsDesc': 'Listener count trends over time',
+        'section.insights': 'Data Insights',
+        'section.insightsDesc': 'In-depth data analysis and comparison',
+        'section.actions': 'Quick Actions',
+        'chart.timeline': 'Timeline',
+        'chart.timelineDesc': 'Real-time listener count changes',
+        'chart.distribution': 'Distribution',
+        'chart.distributionDesc': 'Data distribution analysis',
+        'chart.hourly': 'Hourly Analysis',
+        'chart.hourlyDesc': 'Average listeners per hour',
+        'chart.growth': 'Growth Trend',
+        'chart.growthDesc': 'YoY and MoM growth rate',
+        'chart.comparison': 'Time Comparison',
+        'chart.comparisonDesc': 'Data comparison across periods',
+        'chart.statistics': 'Statistics',
+        'chart.statisticsDesc': 'Detailed statistical data',
+        'time.1h': '1 Hour',
+        'time.6h': '6 Hours',
+        'time.12h': '12 Hours',
+        'time.24h': '24 Hours',
+        'time.all': 'All',
+        'action.stats': 'Stats API',
+        'action.recent': 'Recent Data',
+        'action.export': 'Export CSV',
+        'action.login': 'Re-login',
+        'action.clear': 'Clear Data',
+        'footer': 'Spotify Real-Time Analytics · Powered by Claude Code',
+        'hero.current': 'Current Listeners',
+        'hero.peak': 'Peak Today',
+        'hero.total': 'Total Records',
+        'hero.average': 'Average',
+        'hero.vs': 'vs last hour',
+        'hero.allTime': 'All-time high',
+        'hero.dataPoints': 'data points',
+        'hero.meanValue': 'mean',
+        'metric.average': 'Average',
+        'metric.median': 'Median',
+        'metric.stdDev': 'Std Dev',
+        'metric.variance': 'Variance',
+        'metric.range': 'Range',
+        'metric.minimum': 'Minimum',
+        'metric.maximum': 'Maximum',
+        'metric.total': 'Total Records',
+        'metric.growth1h': '1h Growth',
+        'metric.growth6h': '6h Growth',
+        'metric.volatility': 'Volatility',
+        'metric.stability': 'Stability',
+        'comparison.current': 'Current',
+        'comparison.1hourAgo': '1 Hour Ago',
+        'comparison.6hourAgo': '6 Hours Ago',
+        'comparison.12hourAgo': '12 Hours Ago',
+        'comparison.24hourAgo': '24 Hours Ago',
+        'comparison.change': 'Change',
+        'stat.mean': 'Mean',
+        'stat.median': 'Median',
+        'stat.mode': 'Mode',
+        'stat.stdDev': 'Std Dev',
+        'stat.variance': 'Variance',
+        'stat.cv': 'CV',
+        'stat.range': 'Range',
+        'stat.iqr': 'IQR',
+        'listeners': 'listeners',
+        'na': 'N/A'
+      }
+    };
+
+    let currentLang = 'zh';
+
+    function t(key) {
+      return i18n[currentLang][key] || key;
+    }
+
+    function updateLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+
+      // 更新所有带 data-i18n 的元素
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+      });
+
+      // 更新语言按钮状态
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+
+      // 重新加载数据以更新文本
+      refresh();
+    }
+
+    // 语言切换事件
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        updateLanguage(btn.dataset.lang);
+      });
+    });
+
+    // ========== 图表和数据 ==========
+    let mainChart, hourlyChart, distributionChart, growthChart;
     let currentRange = 60;
     let allData = [];
 
@@ -771,6 +1078,51 @@
       });
     });
 
+    // 计算统计指标
+    function calculateStats(values) {
+      if (!values || values.length === 0) return null;
+
+      const sorted = [...values].sort((a, b) => a - b);
+      const len = values.length;
+      const sum = values.reduce((a, b) => a + b, 0);
+      const mean = sum / len;
+
+      // 中位数
+      const median = len % 2 === 0
+        ? (sorted[len / 2 - 1] + sorted[len / 2]) / 2
+        : sorted[Math.floor(len / 2)];
+
+      // 众数
+      const freq = {};
+      values.forEach(v => freq[v] = (freq[v] || 0) + 1);
+      const mode = Object.keys(freq).reduce((a, b) => freq[a] > freq[b] ? a : b);
+
+      // 方差和标准差
+      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / len;
+      const stdDev = Math.sqrt(variance);
+
+      // 变异系数
+      const cv = mean > 0 ? (stdDev / mean * 100) : 0;
+
+      // 四分位距
+      const q1 = sorted[Math.floor(len * 0.25)];
+      const q3 = sorted[Math.floor(len * 0.75)];
+      const iqr = q3 - q1;
+
+      return {
+        mean: Math.round(mean),
+        median: Math.round(median),
+        mode: parseInt(mode),
+        min: Math.min(...values),
+        max: Math.max(...values),
+        range: Math.max(...values) - Math.min(...values),
+        variance: Math.round(variance),
+        stdDev: Math.round(stdDev),
+        cv: cv.toFixed(1),
+        q1, q3, iqr
+      };
+    }
+
     // 加载Hero区域
     async function loadHero() {
       try {
@@ -778,7 +1130,7 @@
         const stats = await res.json();
 
         if (!stats || stats.totalRecords === 0) {
-          document.getElementById('hero-section').innerHTML = '<div class="loading">No data yet...</div>';
+          document.getElementById('hero-section').innerHTML = `<div class="loading">${t('na')}</div>`;
           return;
         }
 
@@ -792,27 +1144,35 @@
 
         document.getElementById('hero-section').innerHTML = `
           <div class="hero-card primary">
-            <div class="hero-label">Current Listeners</div>
+            <div class="hero-label">${t('hero.current')}</div>
             <div class="hero-value">${stats.latestCount.toLocaleString()}</div>
             <div class="hero-trend ${isUp ? 'trend-up' : 'trend-down'}">
-              <span class="trend-icon">${isUp ? '↗' : '↘'}</span>
-              <span>${Math.abs(trendPercent)}% vs last hour</span>
+              <span>${isUp ? '↗' : '↘'}</span>
+              <span>${Math.abs(trendPercent)}% ${t('hero.vs')}</span>
             </div>
           </div>
 
           <div class="hero-card">
-            <div class="hero-label">Peak Today</div>
+            <div class="hero-label">${t('hero.peak')}</div>
             <div class="hero-value">${stats.maxCount.toLocaleString()}</div>
             <div class="hero-trend" style="color: var(--text-tertiary);">
-              All-time high
+              ${t('hero.allTime')}
             </div>
           </div>
 
           <div class="hero-card">
-            <div class="hero-label">Total Records</div>
+            <div class="hero-label">${t('hero.total')}</div>
             <div class="hero-value">${(stats.totalRecords / 1000).toFixed(1)}k</div>
             <div class="hero-trend" style="color: var(--text-tertiary);">
-              Data points collected
+              ${t('hero.dataPoints')}
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="hero-label">${t('hero.average')}</div>
+            <div class="hero-value">${stats.avgCount.toLocaleString()}</div>
+            <div class="hero-trend" style="color: var(--text-tertiary);">
+              ${t('hero.meanValue')}
             </div>
           </div>
         `;
@@ -827,43 +1187,99 @@
         const res = await fetch('/api/stats');
         const stats = await res.json();
 
-        if (!stats || stats.totalRecords === 0) return;
+        if (!stats || stats.totalRecords === 0 || allData.length === 0) return;
+
+        const values = allData.map(d => d.listenerCount);
+        const calcStats = calculateStats(values);
+
+        // 计算增长率
+        const data1h = allData.slice(-12);
+        const data6h = allData.slice(-72);
+        const avg1h = data1h.reduce((s, d) => s + d.listenerCount, 0) / Math.max(data1h.length, 1);
+        const avg6h = data6h.reduce((s, d) => s + d.listenerCount, 0) / Math.max(data6h.length, 1);
+        const current = stats.latestCount;
+
+        const growth1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
+        const growth6h = avg6h > 0 ? ((current - avg6h) / avg6h * 100).toFixed(1) : 0;
+
+        const volatility = calcStats.cv;
+        const stability = (100 - parseFloat(volatility)).toFixed(1);
 
         document.getElementById('stats-grid').innerHTML = `
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-label">Average</div>
+              <div class="stat-label">${t('metric.average')}</div>
               <div class="stat-icon">📊</div>
             </div>
-            <div class="stat-value">${stats.avgCount.toLocaleString()}</div>
-            <div class="stat-subtitle">Mean listeners</div>
+            <div class="stat-value">${calcStats.mean.toLocaleString()}</div>
+            <div class="stat-subtitle">${t('metric.average')}</div>
           </div>
 
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-label">Minimum</div>
+              <div class="stat-label">${t('metric.median')}</div>
+              <div class="stat-icon">📈</div>
+            </div>
+            <div class="stat-value">${calcStats.median.toLocaleString()}</div>
+            <div class="stat-subtitle">${t('metric.median')}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">${t('metric.stdDev')}</div>
               <div class="stat-icon">📉</div>
             </div>
-            <div class="stat-value">${stats.minCount.toLocaleString()}</div>
-            <div class="stat-subtitle">Lowest recorded</div>
+            <div class="stat-value">${calcStats.stdDev.toLocaleString()}</div>
+            <div class="stat-subtitle">${t('metric.stdDev')}</div>
           </div>
 
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-label">Range</div>
+              <div class="stat-label">${t('metric.range')}</div>
               <div class="stat-icon">📏</div>
             </div>
-            <div class="stat-value">${(stats.maxCount - stats.minCount).toLocaleString()}</div>
-            <div class="stat-subtitle">Peak - Low</div>
+            <div class="stat-value">${calcStats.range.toLocaleString()}</div>
+            <div class="stat-subtitle">${t('metric.maximum')} - ${t('metric.minimum')}</div>
           </div>
 
           <div class="stat-card">
             <div class="stat-header">
-              <div class="stat-label">Last Update</div>
-              <div class="stat-icon">🕐</div>
+              <div class="stat-label">${t('metric.growth1h')}</div>
+              <div class="stat-icon">⚡</div>
             </div>
-            <div class="stat-value">${new Date(stats.latestTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</div>
-            <div class="stat-subtitle">${new Date(stats.latestTime).toLocaleDateString()}</div>
+            <div class="stat-value">${Math.abs(growth1h)}%</div>
+            <div class="stat-change ${parseFloat(growth1h) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(growth1h) >= 0 ? '↗' : '↘'} ${Math.abs(growth1h)}%
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">${t('metric.growth6h')}</div>
+              <div class="stat-icon">🚀</div>
+            </div>
+            <div class="stat-value">${Math.abs(growth6h)}%</div>
+            <div class="stat-change ${parseFloat(growth6h) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(growth6h) >= 0 ? '↗' : '↘'} ${Math.abs(growth6h)}%
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">${t('metric.volatility')}</div>
+              <div class="stat-icon">🌊</div>
+            </div>
+            <div class="stat-value">${volatility}%</div>
+            <div class="stat-subtitle">${t('metric.volatility')}</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">${t('metric.stability')}</div>
+              <div class="stat-icon">🛡️</div>
+            </div>
+            <div class="stat-value">${stability}%</div>
+            <div class="stat-subtitle">${t('metric.stability')}</div>
           </div>
         `;
       } catch (e) {
@@ -883,8 +1299,8 @@
         const labels = allData.map(d => {
           const date = new Date(d.timestamp);
           return currentRange > 720 || currentRange === 0
-            ? date.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
-            : date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+            ? date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
+            : date.toLocaleTimeString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {hour: '2-digit', minute: '2-digit'});
         });
         const values = allData.map(d => d.listenerCount);
 
@@ -901,7 +1317,7 @@
                 borderWidth: 3,
                 backgroundColor: (context) => {
                   const ctx = context.chart.ctx;
-                  const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+                  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
                   gradient.addColorStop(0, 'rgba(29, 185, 84, 0.4)');
                   gradient.addColorStop(1, 'rgba(29, 185, 84, 0)');
                   return gradient;
@@ -930,7 +1346,7 @@
                   padding: 12,
                   displayColors: false,
                   callbacks: {
-                    label: ctx => ctx.parsed.y.toLocaleString() + ' listeners'
+                    label: ctx => ctx.parsed.y.toLocaleString() + ' ' + t('listeners')
                   }
                 }
               },
@@ -942,7 +1358,7 @@
                 },
                 x: {
                   grid: { display: false },
-                  ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 8 }
+                  ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 12 }
                 }
               }
             }
@@ -954,9 +1370,80 @@
         }
 
         loadHero();
-        loadInsights(allData);
+        loadStats();
+        loadDistributionChart();
+        loadGrowthChart();
+        loadComparisonTable();
+        loadStatisticsTable();
       } catch (e) {
         console.error('Failed to load main chart:', e);
+      }
+    }
+
+    // 加载分布图表
+    function loadDistributionChart() {
+      if (allData.length === 0) return;
+
+      const values = allData.map(d => d.listenerCount);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const bucketCount = 10;
+      const bucketSize = (max - min) / bucketCount;
+
+      const buckets = new Array(bucketCount).fill(0);
+      values.forEach(v => {
+        const index = Math.min(Math.floor((v - min) / bucketSize), bucketCount - 1);
+        buckets[index]++;
+      });
+
+      const labels = buckets.map((_, i) => {
+        const start = Math.round(min + i * bucketSize);
+        const end = Math.round(min + (i + 1) * bucketSize);
+        return `${start}-${end}`;
+      });
+
+      const ctx = document.getElementById('distribution-chart').getContext('2d');
+
+      if (!distributionChart) {
+        distributionChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              data: buckets,
+              backgroundColor: 'rgba(29, 185, 84, 0.7)',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                callbacks: {
+                  label: ctx => ctx.parsed.y + ' ' + t('dataPoints')
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: 'rgba(255, 255, 255, 0.5)', maxRotation: 45, minRotation: 45 }
+              }
+            }
+          }
+        });
+      } else {
+        distributionChart.data.labels = labels;
+        distributionChart.data.datasets[0].data = buckets;
+        distributionChart.update('none');
       }
     }
 
@@ -1020,43 +1507,174 @@
       }
     }
 
-    // 加载洞察卡片
-    function loadInsights(data) {
-      if (data.length < 20) return;
+    // 加载增长趋势图表
+    function loadGrowthChart() {
+      if (allData.length < 24) return;
 
-      const values = data.map(d => d.listenerCount);
-      const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      const max = Math.max(...values);
-      const min = Math.min(...values);
-      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-      const stdDev = Math.sqrt(variance);
-      const volatility = (stdDev / mean * 100).toFixed(1);
+      const periods = [
+        { label: '1h', data: allData.slice(-12) },
+        { label: '6h', data: allData.slice(-72) },
+        { label: '12h', data: allData.slice(-144) },
+        { label: '24h', data: allData }
+      ];
 
-      // 预测今日播放次数
-      const avgListeners = mean;
-      const predictedStreams = Math.round(avgListeners * 24 * 60 / 3);
+      const current = allData[allData.length - 1].listenerCount;
+      const growthRates = periods.map(p => {
+        const avg = p.data.reduce((s, d) => s + d.listenerCount, 0) / p.data.length;
+        return avg > 0 ? ((current - avg) / avg * 100).toFixed(1) : 0;
+      });
 
-      document.getElementById('insights-grid').innerHTML = `
-        <div class="insight-card">
-          <div class="insight-icon">🎯</div>
-          <div class="insight-title">Predicted Daily Streams</div>
-          <div class="insight-description">Based on current listening patterns and average session duration</div>
-          <div class="insight-value">${predictedStreams.toLocaleString()}</div>
-        </div>
+      const ctx = document.getElementById('growth-chart').getContext('2d');
 
-        <div class="insight-card">
-          <div class="insight-icon">📈</div>
-          <div class="insight-title">Volatility Index</div>
-          <div class="insight-description">Listener count variation coefficient - lower is more stable</div>
-          <div class="insight-value">${volatility}%</div>
-        </div>
+      if (!growthChart) {
+        growthChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: periods.map(p => p.label),
+            datasets: [{
+              label: 'Growth %',
+              data: growthRates,
+              borderColor: '#1DB954',
+              backgroundColor: 'rgba(29, 185, 84, 0.2)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                callbacks: {
+                  label: ctx => ctx.parsed.y + '%'
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: 'rgba(255, 255, 255, 0.5)', callback: v => v + '%' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+              }
+            }
+          }
+        });
+      } else {
+        growthChart.data.labels = periods.map(p => p.label);
+        growthChart.data.datasets[0].data = growthRates;
+        growthChart.update('none');
+      }
+    }
 
-        <div class="insight-card">
-          <div class="insight-icon">⚡</div>
-          <div class="insight-title">Peak Utilization</div>
-          <div class="insight-description">Average performance vs all-time peak</div>
-          <div class="insight-value">${((mean/max)*100).toFixed(1)}%</div>
-        </div>
+    // 加载对比表格
+    function loadComparisonTable() {
+      if (allData.length === 0) return;
+
+      const current = allData[allData.length - 1].listenerCount;
+      const get = (hoursAgo) => {
+        const index = allData.length - hoursAgo * 12;
+        return index >= 0 ? allData[index].listenerCount : null;
+      };
+
+      const data1h = get(1);
+      const data6h = get(6);
+      const data12h = get(12);
+      const data24h = get(24);
+
+      const change = (old) => old ? ((current - old) / old * 100).toFixed(1) : null;
+
+      const table = document.getElementById('comparison-table');
+      table.innerHTML = `
+        <tr>
+          <th>${t('comparison.current')}</th>
+          <td><span class="comparison-value">${current.toLocaleString()}</span></td>
+        </tr>
+        ${data1h ? `<tr>
+          <th>${t('comparison.1hourAgo')}</th>
+          <td>
+            <span class="comparison-value">${data1h.toLocaleString()}</span>
+            <span class="stat-change ${parseFloat(change(data1h)) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(change(data1h)) >= 0 ? '↗' : '↘'} ${Math.abs(change(data1h))}%
+            </span>
+          </td>
+        </tr>` : ''}
+        ${data6h ? `<tr>
+          <th>${t('comparison.6hourAgo')}</th>
+          <td>
+            <span class="comparison-value">${data6h.toLocaleString()}</span>
+            <span class="stat-change ${parseFloat(change(data6h)) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(change(data6h)) >= 0 ? '↗' : '↘'} ${Math.abs(change(data6h))}%
+            </span>
+          </td>
+        </tr>` : ''}
+        ${data12h ? `<tr>
+          <th>${t('comparison.12hourAgo')}</th>
+          <td>
+            <span class="comparison-value">${data12h.toLocaleString()}</span>
+            <span class="stat-change ${parseFloat(change(data12h)) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(change(data12h)) >= 0 ? '↗' : '↘'} ${Math.abs(change(data12h))}%
+            </span>
+          </td>
+        </tr>` : ''}
+        ${data24h ? `<tr>
+          <th>${t('comparison.24hourAgo')}</th>
+          <td>
+            <span class="comparison-value">${data24h.toLocaleString()}</span>
+            <span class="stat-change ${parseFloat(change(data24h)) >= 0 ? 'positive' : 'negative'}">
+              ${parseFloat(change(data24h)) >= 0 ? '↗' : '↘'} ${Math.abs(change(data24h))}%
+            </span>
+          </td>
+        </tr>` : ''}
+      `;
+    }
+
+    // 加载统计表格
+    function loadStatisticsTable() {
+      if (allData.length === 0) return;
+
+      const values = allData.map(d => d.listenerCount);
+      const stats = calculateStats(values);
+
+      const table = document.getElementById('statistics-table');
+      table.innerHTML = `
+        <tr>
+          <th>${t('stat.mean')}</th>
+          <td><span class="comparison-value">${stats.mean.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.median')}</th>
+          <td><span class="comparison-value">${stats.median.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.mode')}</th>
+          <td><span class="comparison-value">${stats.mode.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.stdDev')}</th>
+          <td><span class="comparison-value">${stats.stdDev.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.variance')}</th>
+          <td><span class="comparison-value">${stats.variance.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.cv')}</th>
+          <td><span class="comparison-value">${stats.cv}%</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.range')}</th>
+          <td><span class="comparison-value">${stats.range.toLocaleString()}</span></td>
+        </tr>
+        <tr>
+          <th>${t('stat.iqr')}</th>
+          <td><span class="comparison-value">${stats.iqr.toLocaleString()}</span></td>
+        </tr>
       `;
     }
 
@@ -1070,7 +1688,7 @@
         const alertDiv = document.getElementById('error-alert');
 
         if (status.errorMessage) {
-          badge.innerHTML = '<span class="status-dot" style="background: #ef4444;"></span><span>Error</span>';
+          badge.innerHTML = `<span class="status-dot" style="background: #ef4444;"></span><span>${t('status.error')}</span>`;
           alertDiv.style.display = 'flex';
           alertDiv.className = 'alert';
           alertDiv.innerHTML = `
@@ -1079,10 +1697,10 @@
               <div class="alert-title">${status.errorMessage}</div>
               <div class="alert-message">Last success: ${status.lastSuccess ? new Date(status.lastSuccess).toLocaleString() : 'Never'}</div>
             </div>
-            <button class="alert-action" onclick="handleLogin()">Re-login</button>
+            <button class="alert-action" onclick="handleLogin()">${t('action.login')}</button>
           `;
         } else {
-          badge.innerHTML = '<span class="status-dot"></span><span>Live Monitoring</span>';
+          badge.innerHTML = `<span class="status-dot"></span><span>${t('status.live')}</span>`;
           alertDiv.style.display = 'none';
         }
       } catch (e) {
@@ -1121,7 +1739,6 @@
     // 刷新所有数据
     async function refresh() {
       await Promise.all([
-        loadStats(),
         loadMainChart(),
         loadHourlyChart(),
         checkStatus()
