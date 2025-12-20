@@ -684,13 +684,18 @@ function startServer() {
     }
   });
 
-  // 商用级前端 Dashboard (新版)
+  // 商用级前端 Dashboard (旧版，保留兼容)
   app.get('/pro', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
   });
 
-  // Dashboard 首页 - 现代化设计 (旧版，保留兼容)
+  // Dashboard V2 - 世界级数据可视化设计 (新版主页)
   app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard-v2.html'));
+  });
+
+  // Dashboard Classic - 经典版本
+  app.get('/classic', (req, res) => {
     res.send(`
 <!DOCTYPE html>
 <html lang="zh-CN">

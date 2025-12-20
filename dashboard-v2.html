@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Real-Time Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --spotify-green: #1DB954;
+      --spotify-dark: #191414;
+      --spotify-darker: #121212;
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #252525;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --text-tertiary: rgba(255, 255, 255, 0.4);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --success: #1DB954;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* 顶部导航栏 */
+    .navbar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    .navbar-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--spotify-green), #1ed760);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(29, 185, 84, 0.3);
+    }
+
+    .brand-logo svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    .brand-info h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-info p {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.2);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--spotify-green);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--spotify-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(29, 185, 84, 0); }
+    }
+
+    /* 主容器 */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* Hero 区域 - 大数字展示 */
+    .hero-section {
+      margin-bottom: 32px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 24px;
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .hero-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(29, 185, 84, 0.3);
+    }
+
+    .hero-card.primary {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      grid-column: 1;
+    }
+
+    .hero-card.primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15), transparent);
+      border-radius: 50%;
+    }
+
+    .hero-label {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .hero-value {
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+
+    .hero-card.primary .hero-value {
+      color: white;
+    }
+
+    .hero-trend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .trend-up {
+      color: var(--success);
+    }
+
+    .trend-down {
+      color: var(--danger);
+    }
+
+    .trend-icon {
+      font-size: 18px;
+    }
+
+    /* 统计卡片网格 */
+    .stats-section {
+      margin-bottom: 32px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--spotify-green), #1ed760);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .stat-card:hover {
+      background: var(--bg-tertiary);
+      border-color: rgba(29, 185, 84, 0.2);
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(29, 185, 84, 0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+
+    .stat-subtitle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* 图表区域 */
+    .chart-section {
+      margin-bottom: 32px;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
+    .chart-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .chart-subtitle {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .time-selector {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-tertiary);
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .time-btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .time-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .time-btn.active {
+      background: var(--spotify-green);
+      color: white;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 350px;
+    }
+
+    /* 热力图 */
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .heatmap-day {
+      text-align: center;
+    }
+
+    .heatmap-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .heatmap-blocks {
+      display: grid;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .heatmap-block {
+      aspect-ratio: 1;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .heatmap-block:hover {
+      transform: scale(1.2);
+      z-index: 10;
+    }
+
+    .heatmap-block.level-0 { background: rgba(29, 185, 84, 0.1); }
+    .heatmap-block.level-1 { background: rgba(29, 185, 84, 0.3); }
+    .heatmap-block.level-2 { background: rgba(29, 185, 84, 0.5); }
+    .heatmap-block.level-3 { background: rgba(29, 185, 84, 0.7); }
+    .heatmap-block.level-4 { background: rgba(29, 185, 84, 0.9); }
+
+    /* 洞察卡片 */
+    .insights-section {
+      margin-bottom: 32px;
+    }
+
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .insight-card {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .insight-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.05));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .insight-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .insight-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .insight-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--spotify-green);
+      margin-top: 12px;
+    }
+
+    /* 操作按钮 */
+    .actions-section {
+      margin-bottom: 32px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--spotify-green);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(29, 185, 84, 0.2);
+    }
+
+    .action-btn.danger {
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .action-btn.danger:hover {
+      border-color: var(--danger);
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .action-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      border-top: 1px solid var(--border-color);
+      margin-top: 48px;
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(29, 185, 84, 0.1);
+      border-top-color: var(--spotify-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 错误提示 */
+    .alert {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .alert-icon {
+      font-size: 28px;
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      color: var(--danger);
+      margin-bottom: 4px;
+    }
+
+    .alert-message {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .alert-action {
+      padding: 10px 20px;
+      background: var(--danger);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .alert-action:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 1200px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+
+      .navbar-content {
+        padding: 0 20px;
+      }
+
+      .hero-value {
+        font-size: 48px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .time-selector {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-content">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        </div>
+        <div class="brand-info">
+          <h1>Real-Time Analytics</h1>
+          <p>Spotify Listener Tracking Dashboard</p>
+        </div>
+      </div>
+      <div class="status-badge" id="status-badge">
+        <span class="status-dot"></span>
+        <span>Live Monitoring</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主容器 -->
+  <div class="container">
+
+    <!-- 错误提示 -->
+    <div id="error-alert" style="display: none;"></div>
+
+    <!-- Hero 区域 -->
+    <section class="hero-section">
+      <div class="hero-grid" id="hero-section">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p style="color: var(--text-secondary);">Loading data...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计卡片 -->
+    <section class="stats-section">
+      <div class="stats-grid" id="stats-grid">
+        <!-- 动态加载 -->
+      </div>
+    </section>
+
+    <!-- 图表区域 -->
+    <section class="chart-section">
+      <div class="chart-grid">
+        <!-- 主图表 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">📈 Listener Trends</div>
+              <div class="chart-subtitle" id="chart-subtitle">Real-time listener count over time</div>
+            </div>
+            <div class="time-selector">
+              <button class="time-btn active" data-range="60">1h</button>
+              <button class="time-btn" data-range="360">6h</button>
+              <button class="time-btn" data-range="720">12h</button>
+              <button class="time-btn" data-range="1440">24h</button>
+              <button class="time-btn" data-range="0">All</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="main-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- 时段分析 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">🕐 Peak Hours</div>
+              <div class="chart-subtitle">Average listeners by hour</div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="hourly-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 洞察卡片 -->
+    <section class="insights-section">
+      <div class="insights-grid" id="insights-grid">
+        <!-- 动态加载 -->
+      </div>
+    </section>
+
+    <!-- 操作按钮 -->
+    <section class="actions-section">
+      <div class="actions-grid">
+        <a href="/api/stats" target="_blank" class="action-btn">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          API Stats
+        </a>
+        <a href="/api/data?limit=100" target="_blank" class="action-btn">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
+          Recent 100
+        </a>
+        <a href="/api/download/csv" class="action-btn">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Export CSV
+        </a>
+        <button onclick="handleLogin()" class="action-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+          Re-login
+        </button>
+        <button onclick="handleClearData()" class="action-btn danger">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          Clear Data
+        </button>
+      </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      Spotify Real-Time Analytics · Powered by Claude Code
+    </footer>
+  </div>
+
+  <script>
+    let mainChart, hourlyChart;
+    let currentRange = 60;
+    let allData = [];
+
+    // 时间范围选择
+    document.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRange = parseInt(btn.dataset.range);
+        loadMainChart();
+      });
+    });
+
+    // 加载Hero区域
+    async function loadHero() {
+      try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+
+        if (!stats || stats.totalRecords === 0) {
+          document.getElementById('hero-section').innerHTML = '<div class="loading">No data yet...</div>';
+          return;
+        }
+
+        // 计算趋势
+        const recentData = allData.slice(-12);
+        const olderData = allData.slice(-24, -12);
+        const recentAvg = recentData.reduce((s, d) => s + d.listenerCount, 0) / Math.max(recentData.length, 1);
+        const olderAvg = olderData.reduce((s, d) => s + d.listenerCount, 0) / Math.max(olderData.length, 1);
+        const trendPercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1) : 0;
+        const isUp = trendPercent > 0;
+
+        document.getElementById('hero-section').innerHTML = `
+          <div class="hero-card primary">
+            <div class="hero-label">Current Listeners</div>
+            <div class="hero-value">${stats.latestCount.toLocaleString()}</div>
+            <div class="hero-trend ${isUp ? 'trend-up' : 'trend-down'}">
+              <span class="trend-icon">${isUp ? '↗' : '↘'}</span>
+              <span>${Math.abs(trendPercent)}% vs last hour</span>
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="hero-label">Peak Today</div>
+            <div class="hero-value">${stats.maxCount.toLocaleString()}</div>
+            <div class="hero-trend" style="color: var(--text-tertiary);">
+              All-time high
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="hero-label">Total Records</div>
+            <div class="hero-value">${(stats.totalRecords / 1000).toFixed(1)}k</div>
+            <div class="hero-trend" style="color: var(--text-tertiary);">
+              Data points collected
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load hero:', e);
+      }
+    }
+
+    // 加载统计卡片
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+
+        if (!stats || stats.totalRecords === 0) return;
+
+        document.getElementById('stats-grid').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Average</div>
+              <div class="stat-icon">📊</div>
+            </div>
+            <div class="stat-value">${stats.avgCount.toLocaleString()}</div>
+            <div class="stat-subtitle">Mean listeners</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Minimum</div>
+              <div class="stat-icon">📉</div>
+            </div>
+            <div class="stat-value">${stats.minCount.toLocaleString()}</div>
+            <div class="stat-subtitle">Lowest recorded</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Range</div>
+              <div class="stat-icon">📏</div>
+            </div>
+            <div class="stat-value">${(stats.maxCount - stats.minCount).toLocaleString()}</div>
+            <div class="stat-subtitle">Peak - Low</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-label">Last Update</div>
+              <div class="stat-icon">🕐</div>
+            </div>
+            <div class="stat-value">${new Date(stats.latestTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}</div>
+            <div class="stat-subtitle">${new Date(stats.latestTime).toLocaleDateString()}</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    // 加载主图表
+    async function loadMainChart() {
+      try {
+        const limit = currentRange === 0 ? 10000 : currentRange;
+        const res = await fetch('/api/data?limit=' + limit);
+        allData = await res.json();
+
+        if (allData.length === 0) return;
+
+        const labels = allData.map(d => {
+          const date = new Date(d.timestamp);
+          return currentRange > 720 || currentRange === 0
+            ? date.toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
+            : date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+        });
+        const values = allData.map(d => d.listenerCount);
+
+        const ctx = document.getElementById('main-chart').getContext('2d');
+
+        if (!mainChart) {
+          mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [{
+                data: values,
+                borderColor: '#1DB954',
+                borderWidth: 3,
+                backgroundColor: (context) => {
+                  const ctx = context.chart.ctx;
+                  const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+                  gradient.addColorStop(0, 'rgba(29, 185, 84, 0.4)');
+                  gradient.addColorStop(1, 'rgba(29, 185, 84, 0)');
+                  return gradient;
+                },
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: '#1DB954',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { intersect: false, mode: 'index' },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleColor: '#fff',
+                  bodyColor: '#1DB954',
+                  titleFont: { size: 13, weight: '600' },
+                  bodyFont: { size: 16, weight: '700' },
+                  padding: 12,
+                  displayColors: false,
+                  callbacks: {
+                    label: ctx => ctx.parsed.y.toLocaleString() + ' listeners'
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: false,
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                  ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                },
+                x: {
+                  grid: { display: false },
+                  ticks: { color: 'rgba(255, 255, 255, 0.5)', maxTicksLimit: 8 }
+                }
+              }
+            }
+          });
+        } else {
+          mainChart.data.labels = labels;
+          mainChart.data.datasets[0].data = values;
+          mainChart.update('none');
+        }
+
+        loadHero();
+        loadInsights(allData);
+      } catch (e) {
+        console.error('Failed to load main chart:', e);
+      }
+    }
+
+    // 加载时段图表
+    async function loadHourlyChart() {
+      try {
+        const res = await fetch('/api/analytics/hourly');
+        const hourlyData = await res.json();
+
+        if (hourlyData.length === 0) return;
+
+        const labels = hourlyData.map(d => d.hour + ':00');
+        const values = hourlyData.map(d => d.avgCount);
+
+        const ctx = document.getElementById('hourly-chart').getContext('2d');
+
+        if (!hourlyChart) {
+          hourlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                data: values,
+                backgroundColor: 'rgba(29, 185, 84, 0.8)',
+                borderRadius: 8,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  callbacks: {
+                    label: ctx => Math.round(ctx.parsed.y).toLocaleString() + ' avg'
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                  ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                },
+                x: {
+                  grid: { display: false },
+                  ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                }
+              }
+            }
+          });
+        } else {
+          hourlyChart.data.labels = labels;
+          hourlyChart.data.datasets[0].data = values;
+          hourlyChart.update('none');
+        }
+      } catch (e) {
+        console.error('Failed to load hourly chart:', e);
+      }
+    }
+
+    // 加载洞察卡片
+    function loadInsights(data) {
+      if (data.length < 20) return;
+
+      const values = data.map(d => d.listenerCount);
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+      const volatility = (stdDev / mean * 100).toFixed(1);
+
+      // 预测今日播放次数
+      const avgListeners = mean;
+      const predictedStreams = Math.round(avgListeners * 24 * 60 / 3);
+
+      document.getElementById('insights-grid').innerHTML = `
+        <div class="insight-card">
+          <div class="insight-icon">🎯</div>
+          <div class="insight-title">Predicted Daily Streams</div>
+          <div class="insight-description">Based on current listening patterns and average session duration</div>
+          <div class="insight-value">${predictedStreams.toLocaleString()}</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon">📈</div>
+          <div class="insight-title">Volatility Index</div>
+          <div class="insight-description">Listener count variation coefficient - lower is more stable</div>
+          <div class="insight-value">${volatility}%</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-icon">⚡</div>
+          <div class="insight-title">Peak Utilization</div>
+          <div class="insight-description">Average performance vs all-time peak</div>
+          <div class="insight-value">${((mean/max)*100).toFixed(1)}%</div>
+        </div>
+      `;
+    }
+
+    // 检查状态
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const status = await res.json();
+
+        const badge = document.getElementById('status-badge');
+        const alertDiv = document.getElementById('error-alert');
+
+        if (status.errorMessage) {
+          badge.innerHTML = '<span class="status-dot" style="background: #ef4444;"></span><span>Error</span>';
+          alertDiv.style.display = 'flex';
+          alertDiv.className = 'alert';
+          alertDiv.innerHTML = `
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+              <div class="alert-title">${status.errorMessage}</div>
+              <div class="alert-message">Last success: ${status.lastSuccess ? new Date(status.lastSuccess).toLocaleString() : 'Never'}</div>
+            </div>
+            <button class="alert-action" onclick="handleLogin()">Re-login</button>
+          `;
+        } else {
+          badge.innerHTML = '<span class="status-dot"></span><span>Live Monitoring</span>';
+          alertDiv.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Failed to check status:', e);
+      }
+    }
+
+    // 登录处理
+    function handleLogin() {
+      alert('Login feature - please implement based on your authentication method');
+    }
+
+    // 清空数据
+    async function handleClearData() {
+      const confirmed = confirm('⚠️ Warning: This will permanently delete all historical data!\n\nAre you sure you want to clear the database?\n\nRecommended: Download CSV backup first.');
+      if (!confirmed) return;
+
+      const doubleConfirm = confirm('Final confirmation: Do you really want to delete all data?\n\nThis action cannot be undone!');
+      if (!doubleConfirm) return;
+
+      try {
+        const res = await fetch('/api/clear-data', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.success) {
+          alert('✅ ' + data.message);
+          await refresh();
+        } else {
+          alert('❌ Failed: ' + data.message);
+        }
+      } catch (e) {
+        alert('❌ Request failed: ' + e.message);
+      }
+    }
+
+    // 刷新所有数据
+    async function refresh() {
+      await Promise.all([
+        loadStats(),
+        loadMainChart(),
+        loadHourlyChart(),
+        checkStatus()
+      ]);
+    }
+
+    // 自动刷新（每5秒）
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+
+</body>
+</html>
