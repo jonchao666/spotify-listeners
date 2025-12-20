@@ -482,6 +482,37 @@ function startServer() {
     res.send(csv);
   });
 
+  // 清空数据库
+  app.post('/api/clear-data', (req, res) => {
+    try {
+      const countResult = db.exec('SELECT COUNT(*) as count FROM listeners');
+      const recordCount = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+
+      // 删除所有数据
+      db.run('DELETE FROM listeners');
+
+      // 重置自增ID
+      db.run('DELETE FROM sqlite_sequence WHERE name="listeners"');
+
+      // 保存到文件
+      saveDatabaseToFile();
+
+      console.log(`数据库已清空，删除了 ${recordCount} 条记录`);
+
+      res.json({
+        success: true,
+        message: `成功清空 ${recordCount} 条记录`,
+        deletedCount: recordCount
+      });
+    } catch (error) {
+      console.error('清空数据库失败:', error.message);
+      res.status(500).json({
+        success: false,
+        message: '清空数据库失败: ' + error.message
+      });
+    }
+  });
+
   // ===== 高级分析 API =====
 
   // 时段分析（按小时统计平均值）
@@ -1591,6 +1622,10 @@ function startServer() {
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
         重新登录
       </button>
+      <button onclick="handleClearData()" class="link-btn" style="border:none; cursor:pointer; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#ef4444;">
+        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        清空数据
+      </button>
     </div>
   </div>
 
@@ -1718,7 +1753,7 @@ async function startLocalLogin() {
 async function uploadCookies() {
   const input = document.getElementById('cookie-input').value.trim();
   if (!input) return alert('请输入 Cookie 数据');
-  
+
   let cookies;
   try {
     cookies = JSON.parse(input);
@@ -1741,6 +1776,29 @@ async function uploadCookies() {
     }
   } catch (e) {
     alert('上传请求失败: ' + e.message);
+  }
+}
+
+async function handleClearData() {
+  const confirmed = confirm('⚠️ 警告：此操作将永久删除所有历史数据！\n\n确定要清空数据库吗？\n\n建议先下载CSV备份。');
+  if (!confirmed) return;
+
+  const doubleConfirm = confirm('再次确认：你真的要删除所有数据吗？\n\n此操作不可恢复！');
+  if (!doubleConfirm) return;
+
+  try {
+    const res = await fetch('/api/clear-data', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.success) {
+      alert('✅ ' + data.message);
+      // 刷新页面数据
+      await refresh();
+    } else {
+      alert('❌ 清空失败: ' + data.message);
+    }
+  } catch (e) {
+    alert('❌ 请求失败: ' + e.message);
   }
 }
 
