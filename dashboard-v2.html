@@ -1134,11 +1134,12 @@
           return;
         }
 
-        // 计算趋势
-        const recentData = allData.slice(-12);
-        const olderData = allData.slice(-24, -12);
-        const recentAvg = recentData.reduce((s, d) => s + d.listenerCount, 0) / Math.max(recentData.length, 1);
-        const olderAvg = olderData.reduce((s, d) => s + d.listenerCount, 0) / Math.max(olderData.length, 1);
+        // 计算趋势（对比上1小时）
+        // 5秒/个数据点，1小时 = 720个数据点
+        const recentData = allData.slice(-720);  // 最近1小时
+        const olderData = allData.slice(-1440, -720);  // 前1小时
+        const recentAvg = recentData.length > 0 ? recentData.reduce((s, d) => s + d.listenerCount, 0) / recentData.length : 0;
+        const olderAvg = olderData.length > 0 ? olderData.reduce((s, d) => s + d.listenerCount, 0) / olderData.length : 0;
         const trendPercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1) : 0;
         const isUp = trendPercent > 0;
 
@@ -1193,10 +1194,11 @@
         const calcStats = calculateStats(values);
 
         // 计算增长率
-        const data1h = allData.slice(-12);
-        const data6h = allData.slice(-72);
-        const avg1h = data1h.reduce((s, d) => s + d.listenerCount, 0) / Math.max(data1h.length, 1);
-        const avg6h = data6h.reduce((s, d) => s + d.listenerCount, 0) / Math.max(data6h.length, 1);
+        // 5秒/个数据点，1小时=720个，6小时=4320个
+        const data1h = allData.slice(-720);  // 最近1小时
+        const data6h = allData.slice(-4320);  // 最近6小时
+        const avg1h = data1h.length > 0 ? data1h.reduce((s, d) => s + d.listenerCount, 0) / data1h.length : 0;
+        const avg6h = data6h.length > 0 ? data6h.reduce((s, d) => s + d.listenerCount, 0) / data6h.length : 0;
         const current = stats.latestCount;
 
         const growth1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
@@ -1509,17 +1511,19 @@
 
     // 加载增长趋势图表
     function loadGrowthChart() {
-      if (allData.length < 24) return;
+      if (allData.length < 720) return;  // 至少需要1小时数据
 
+      // 5秒/个数据点，1小时=720，6小时=4320，12小时=8640，24小时=17280
       const periods = [
-        { label: '1h', data: allData.slice(-12) },
-        { label: '6h', data: allData.slice(-72) },
-        { label: '12h', data: allData.slice(-144) },
-        { label: '24h', data: allData }
+        { label: '1h', data: allData.slice(-720) },
+        { label: '6h', data: allData.slice(-4320) },
+        { label: '12h', data: allData.slice(-8640) },
+        { label: '24h', data: allData.slice(-17280) }
       ];
 
       const current = allData[allData.length - 1].listenerCount;
       const growthRates = periods.map(p => {
+        if (p.data.length === 0) return 0;
         const avg = p.data.reduce((s, d) => s + d.listenerCount, 0) / p.data.length;
         return avg > 0 ? ((current - avg) / avg * 100).toFixed(1) : 0;
       });
@@ -1577,9 +1581,12 @@
       if (allData.length === 0) return;
 
       const current = allData[allData.length - 1].listenerCount;
+
+      // 5秒/个数据点，1小时=720个，6小时=4320个，12小时=8640个，24小时=17280个
       const get = (hoursAgo) => {
-        const index = allData.length - hoursAgo * 12;
-        return index >= 0 ? allData[index].listenerCount : null;
+        const dataPointsPerHour = 720;
+        const index = allData.length - 1 - (hoursAgo * dataPointsPerHour);
+        return index >= 0 && index < allData.length ? allData[index].listenerCount : null;
       };
 
       const data1h = get(1);
