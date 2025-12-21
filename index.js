@@ -11,7 +11,18 @@ const CONFIG = {
   scrapeInterval: parseInt(process.env.SCRAPE_INTERVAL) || 5000,
   cookiesFile: process.env.COOKIES_FILE || 'cookies.json',
   databaseFile: process.env.DATABASE_FILE || 'listeners.db',
-  port: parseInt(process.env.PORT) || 3000
+  port: parseInt(process.env.PORT) || 3000,
+  // 邮件通知配置
+  email: {
+    enabled: process.env.EMAIL_ENABLED === 'true',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: process.env.EMAIL_SECURE === 'true',
+    user: process.env.EMAIL_USER || '',
+    pass: process.env.EMAIL_PASS || '',
+    to: process.env.EMAIL_TO || '',
+    from: process.env.EMAIL_FROM || 'Spotify Tracker <noreply@spotify-tracker.local>'
+  }
 };
 
 // 数据存储
@@ -31,6 +42,74 @@ let scrapeStatus = {
   needsLogin: false,
   consecutiveErrors: 0
 };
+
+// 邮件通知状态（避免频繁发送）
+let lastEmailSent = null;
+const EMAIL_COOLDOWN = 30 * 60 * 1000; // 30分钟冷却
+
+// 发送邮件通知
+async function sendEmailNotification(subject, message) {
+  if (!CONFIG.email.enabled || !CONFIG.email.user || !CONFIG.email.to) {
+    return false;
+  }
+
+  // 检查冷却时间
+  if (lastEmailSent && (Date.now() - lastEmailSent) < EMAIL_COOLDOWN) {
+    console.log('邮件通知冷却中，跳过发送');
+    return false;
+  }
+
+  try {
+    // 动态加载 nodemailer（可选依赖）
+    let nodemailer;
+    try {
+      nodemailer = require('nodemailer');
+    } catch (e) {
+      console.log('nodemailer 未安装，跳过邮件通知。运行 npm install nodemailer 启用此功能');
+      return false;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: CONFIG.email.host,
+      port: CONFIG.email.port,
+      secure: CONFIG.email.secure,
+      auth: {
+        user: CONFIG.email.user,
+        pass: CONFIG.email.pass
+      }
+    });
+
+    const mailOptions = {
+      from: CONFIG.email.from,
+      to: CONFIG.email.to,
+      subject: `[Spotify Tracker] ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1DB954;">🎵 Spotify Listener Tracker</h2>
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #e74c3c;">⚠️ ${subject}</h3>
+            <p style="color: #333;">${message}</p>
+          </div>
+          <div style="color: #888; font-size: 12px;">
+            <p>时间: ${new Date().toISOString()}</p>
+            <p>最后成功抓取: ${scrapeStatus.lastSuccess || '从未'}</p>
+            <p>连续错误次数: ${scrapeStatus.consecutiveErrors}</p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+          <p style="color: #888; font-size: 11px;">此邮件由 Spotify Listener Tracker 自动发送</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    lastEmailSent = Date.now();
+    console.log('邮件通知已发送:', subject);
+    return true;
+  } catch (e) {
+    console.error('发送邮件失败:', e.message);
+    return false;
+  }
+}
 
 // 初始化数据库
 async function initDatabase() {
@@ -235,6 +314,13 @@ async function loadPage() {
       scrapeStatus.lastError = new Date().toISOString();
       scrapeStatus.consecutiveErrors++;
       pageLoaded = false;
+
+      // 发送邮件通知
+      sendEmailNotification(
+        '登录已过期',
+        '您的 Spotify for Artists 登录已过期，需要重新上传 Cookies 或重新登录。请访问仪表盘进行处理。'
+      );
+
       return false;
     }
 
@@ -2151,6 +2237,14 @@ async function scrapeWithRecovery() {
     scrapeStatus.errorMessage = e.message;
     scrapeStatus.lastError = new Date().toISOString();
     scrapeStatus.consecutiveErrors++;
+
+    // 连续错误超过5次发送邮件通知
+    if (scrapeStatus.consecutiveErrors >= 5) {
+      sendEmailNotification(
+        '抓取连续失败',
+        `抓取已连续失败 ${scrapeStatus.consecutiveErrors} 次。<br><br>错误信息: ${e.message}<br><br>请检查服务器状态或重新登录。`
+      );
+    }
   }
 }
 

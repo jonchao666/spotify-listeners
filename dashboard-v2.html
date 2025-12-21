@@ -234,26 +234,6 @@
       background: linear-gradient(90deg, var(--spotify-green), #1ed760);
     }
 
-    .metric-card.primary {
-      background: linear-gradient(135deg, #1DB954, #1ed760);
-      border: none;
-      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
-    }
-
-    .metric-card.primary::before {
-      display: none;
-    }
-
-    .metric-card.primary .metric-label,
-    .metric-card.primary .metric-value,
-    .metric-card.primary .metric-compare-label,
-    .metric-card.primary .metric-compare-value {
-      color: white;
-    }
-
-    .metric-card.primary .metric-compare-item {
-      background: rgba(255,255,255,0.15);
-    }
 
     .metric-label {
       font-size: 12px;
@@ -275,21 +255,22 @@
     .metric-compare {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .metric-compare-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
+      padding: 6px 10px;
       background: var(--bg-tertiary);
-      border-radius: 8px;
-      font-size: 13px;
+      border-radius: 6px;
+      font-size: 12px;
     }
 
     .metric-compare-label {
       color: var(--text-secondary);
+      flex-shrink: 0;
     }
 
     .metric-compare-value {
@@ -297,7 +278,8 @@
       color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      text-align: right;
     }
 
     .metric-change {
@@ -317,75 +299,97 @@
       background: rgba(239, 68, 68, 0.15);
     }
 
-    .metric-card.primary .metric-change.up {
-      background: rgba(255,255,255,0.2);
-      color: white;
-    }
-
-    .metric-card.primary .metric-change.down {
-      background: rgba(255,255,255,0.2);
-      color: #ffcdd2;
-    }
-
-    /* 市场洞察区 */
-    .market-insights {
+    /* 时段排行表格 */
+    .hourly-table {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 24px;
-      margin-top: 24px;
+      overflow: hidden;
     }
 
-    .market-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .market-title {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .market-grid {
+    .hourly-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: 80px 120px 1fr 100px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      transition: background 0.2s;
     }
 
-    .market-card {
+    .hourly-row:last-child {
+      border-bottom: none;
+    }
+
+    .hourly-row:hover {
       background: var(--bg-tertiary);
-      border-radius: 12px;
-      padding: 16px 20px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
     }
 
-    .market-icon {
-      font-size: 24px;
-      flex-shrink: 0;
+    .hourly-row.header {
+      background: var(--bg-tertiary);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
     }
 
-    .market-content {
-      flex: 1;
+    .hourly-rank {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
     }
 
-    .market-label {
+    .hourly-rank.top3 {
+      color: var(--spotify-green);
+    }
+
+    .hourly-time {
       font-size: 14px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 4px;
     }
 
-    .market-detail {
-      font-size: 13px;
+    .hourly-regions {
+      font-size: 12px;
       color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    .market-detail strong {
-      color: var(--spotify-green);
+    .hourly-region {
+      background: var(--bg-tertiary);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .hourly-avg {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: right;
+    }
+
+    .hourly-bar-container {
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .hourly-bar {
+      height: 100%;
+      background: var(--spotify-green);
+      border-radius: 2px;
+    }
+
+    @media (max-width: 768px) {
+      .hourly-row {
+        grid-template-columns: 60px 1fr 80px;
+      }
+      .hourly-regions {
+        display: none;
+      }
     }
 
     /* 关键指标网格 - 保留用于fallback */
@@ -1081,7 +1085,7 @@
         <div class="chart-header">
           <div>
             <div class="chart-title" data-i18n="chart.timeline">听众趋势</div>
-            <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化</div>
+            <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化 (UTC)</div>
           </div>
           <div style="display: flex; gap: 12px; align-items: center;">
             <div class="time-selector">
@@ -1103,6 +1107,14 @@
       </div>
     </section>
 
+    <!-- ========== 时段分析 ========== -->
+    <section class="section" id="hourly-section">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="section.hourlyStats">时段分析</h2>
+        <p class="section-subtitle" data-i18n="section.hourlyStatsDesc">各小时平均听众排行 (UTC)</p>
+      </div>
+      <div id="hourly-ranking"></div>
+    </section>
 
     <!-- ========== 快捷操作 ========== -->
     <section class="actions-section">
@@ -1159,7 +1171,7 @@
         'section.analysisDesc': '与历史数据对比分析',
         'section.actions': '快捷操作',
         'chart.timeline': '听众趋势',
-        'chart.timelineDesc': '实时听众数量变化',
+        'chart.timelineDesc': '实时听众数量变化 (UTC)',
         'chart.raw': '原始',
         'chart.smooth': '平滑',
         'time.1h': '1小时',
@@ -1229,7 +1241,7 @@
         'section.analysisDesc': 'Historical data comparison',
         'section.actions': 'Quick Actions',
         'chart.timeline': 'Listener Trends',
-        'chart.timelineDesc': 'Real-time listener count changes',
+        'chart.timelineDesc': 'Real-time listener count changes (UTC)',
         'chart.raw': 'Raw',
         'chart.smooth': 'Smooth',
         'time.1h': '1 Hour',
@@ -1341,15 +1353,13 @@
     async function loadHeroSection() {
       try {
         // 获取统计数据和足够多的历史数据
-        const [statsRes, heroDataRes, hourlyRes] = await Promise.all([
+        const [statsRes, heroDataRes] = await Promise.all([
           fetch('/api/stats'),
-          fetch('/api/data?limit=250000'),
-          fetch('/api/analytics/hourly')
+          fetch('/api/data?limit=250000')
         ]);
 
         const stats = await statsRes.json();
         const heroData = await heroDataRes.json();
-        const hourlyData = await hourlyRes.json();
 
         if (!stats || stats.totalRecords === 0) {
           document.getElementById('hero-content').innerHTML = `<div class="loading">${t('na')}</div>`;
@@ -1450,126 +1460,76 @@
           return `<span class="metric-change ${cls}">${arrow}${Math.abs(num)}%</span>`;
         };
 
-        // === 市场洞察 ===
-        let marketInsightsHtml = '';
-        if (hourlyData.length > 0) {
-          const overallHourlyAvg = hourlyData.reduce((s, d) => s + d.avgCount, 0) / hourlyData.length;
-          const sorted = [...hourlyData].sort((a, b) => b.avgCount - a.avgCount);
-          const peakHours = sorted.slice(0, 3);
-          const lowHours = sorted.slice(-3).reverse();
 
-          // 分析主力市场
-          const peakUTCHours = peakHours.map(h => h.hour);
-          let mainMarket = '';
-          let mainMarketIcon = '🌍';
-
-          // 根据UTC高峰时间推断主力市场
-          const avgPeakHour = peakUTCHours.reduce((a, b) => a + b, 0) / peakUTCHours.length;
-          if (avgPeakHour >= 0 && avgPeakHour <= 6) {
-            mainMarket = currentLang === 'zh' ? '北美晚间用户为主' : 'Primarily North American evening users';
-            mainMarketIcon = '🇺🇸';
-          } else if (avgPeakHour >= 10 && avgPeakHour <= 16) {
-            mainMarket = currentLang === 'zh' ? '亚太地区用户为主' : 'Primarily Asia-Pacific users';
-            mainMarketIcon = '🌏';
-          } else if (avgPeakHour >= 17 && avgPeakHour <= 23) {
-            mainMarket = currentLang === 'zh' ? '欧洲晚间用户为主' : 'Primarily European evening users';
-            mainMarketIcon = '🇪🇺';
-          } else {
-            mainMarket = currentLang === 'zh' ? '全球分布均匀' : 'Evenly distributed globally';
-          }
-
-          const peakVsAvg = ((peakHours[0].avgCount / overallHourlyAvg - 1) * 100).toFixed(0);
-          const lowVsAvg = ((1 - lowHours[0].avgCount / overallHourlyAvg) * 100).toFixed(0);
-
-          marketInsightsHtml = `
-            <div class="market-insights">
-              <div class="market-header">
-                <span style="font-size: 24px;">🎯</span>
-                <span class="market-title">${currentLang === 'zh' ? '市场洞察' : 'Market Insights'}</span>
-              </div>
-              <div class="market-grid">
-                <div class="market-card">
-                  <div class="market-icon">📈</div>
-                  <div class="market-content">
-                    <div class="market-label">${currentLang === 'zh' ? '高峰时段' : 'Peak Hours'}</div>
-                    <div class="market-detail">UTC ${peakHours.map(h => h.hour + ':00').join(', ')} · <strong>+${peakVsAvg}%</strong> ${currentLang === 'zh' ? '高于平均' : 'above avg'}</div>
-                  </div>
-                </div>
-                <div class="market-card">
-                  <div class="market-icon">📉</div>
-                  <div class="market-content">
-                    <div class="market-label">${currentLang === 'zh' ? '低谷时段' : 'Low Hours'}</div>
-                    <div class="market-detail">UTC ${lowHours.map(h => h.hour + ':00').join(', ')} · <strong>-${lowVsAvg}%</strong> ${currentLang === 'zh' ? '低于平均' : 'below avg'}</div>
-                  </div>
-                </div>
-                <div class="market-card">
-                  <div class="market-icon">${mainMarketIcon}</div>
-                  <div class="market-content">
-                    <div class="market-label">${currentLang === 'zh' ? '主力市场推测' : 'Primary Market'}</div>
-                    <div class="market-detail">${mainMarket}</div>
-                  </div>
-                </div>
-                <div class="market-card">
-                  <div class="market-icon">⏰</div>
-                  <div class="market-content">
-                    <div class="market-label">${currentLang === 'zh' ? '最佳发布时间' : 'Best Release Time'}</div>
-                    <div class="market-detail">UTC <strong>${peakHours[0].hour}:00</strong> (${currentLang === 'zh' ? '听众最活跃' : 'peak activity'})</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-        }
+        // UTC日期格式化
+        const utcDateStr = nowUTC.toISOString().split('T')[0];
+        const yesterdayDateStr = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 1)).toISOString().split('T')[0];
 
         // 渲染完整的数据概览
         document.getElementById('hero-content').innerHTML = `
           <!-- 核心指标卡片 -->
           <div class="hero-main">
             <!-- 当前听众 -->
-            <div class="metric-card primary">
+            <div class="metric-card">
               <div class="metric-label">${t('hero.current')}</div>
               <div class="metric-value">${current.toLocaleString()}</div>
               <div class="metric-compare">
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 今日平均' : 'vs Today Avg'}</span>
-                  <span class="metric-compare-value">${formatChange(calcChange(current, todayAvg))}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'}</span>
+                  <span class="metric-compare-value">${todayAvg.toFixed(1)} ${formatChange(calcChange(current, todayAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 昨日平均' : 'vs Yesterday'}</span>
-                  <span class="metric-compare-value">${formatChange(calcChange(current, yesterdayAvg))}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日平均' : 'Yesterday Avg'}</span>
+                  <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, yesterdayAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 历史平均' : 'vs All-time'}</span>
-                  <span class="metric-compare-value">${formatChange(calcChange(current, overallAvg))}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周平均' : 'Week Avg'}</span>
+                  <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisWeekAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月平均' : 'Month Avg'}</span>
+                  <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisMonthAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史平均' : 'All-time Avg'}</span>
+                  <span class="metric-compare-value">${overallAvg.toFixed(1)} ${formatChange(calcChange(current, overallAvg))}</span>
                 </div>
               </div>
             </div>
 
             <!-- 今日平均 -->
             <div class="metric-card">
-              <div class="metric-label">${currentLang === 'zh' ? '今日平均' : 'Today Average'}</div>
+              <div class="metric-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'} <span style="opacity:0.5;font-size:10px;">UTC ${utcDateStr}</span></div>
               <div class="metric-value">${todayAvg.toFixed(1)}</div>
               <div class="metric-compare">
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日' : 'Yesterday'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日平均' : 'Yesterday Avg'}</span>
                   <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, yesterdayAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周' : 'This Week'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周平均' : 'Week Avg'}</span>
                   <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisWeekAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月' : 'This Month'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月平均' : 'Month Avg'}</span>
                   <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisMonthAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史平均' : 'All-time Avg'}</span>
+                  <span class="metric-compare-value">${overallAvg.toFixed(1)} ${formatChange(calcChange(todayAvg, overallAvg))}</span>
                 </div>
               </div>
             </div>
 
             <!-- 今日峰值 -->
             <div class="metric-card">
-              <div class="metric-label">${currentLang === 'zh' ? '今日峰值' : 'Today Peak'}</div>
+              <div class="metric-label">${currentLang === 'zh' ? '今日峰值' : 'Today Peak'} <span style="opacity:0.5;font-size:10px;">UTC</span></div>
               <div class="metric-value">${todayPeak.toLocaleString()}</div>
               <div class="metric-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日峰值' : 'Yesterday Peak'}</span>
+                  <span class="metric-compare-value">${yesterdayPeak ? yesterdayPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, yesterdayPeak))}</span>
+                </div>
                 <div class="metric-compare-item">
                   <span class="metric-compare-label">${currentLang === 'zh' ? '本周峰值' : 'Week Peak'}</span>
                   <span class="metric-compare-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisWeekPeak))}</span>
@@ -1579,7 +1539,7 @@
                   <span class="metric-compare-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisMonthPeak))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史峰值' : 'All-time'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史峰值' : 'All-time Peak'}</span>
                   <span class="metric-compare-value">${overallPeak.toLocaleString()} ${formatChange(calcChange(todayPeak, overallPeak))}</span>
                 </div>
               </div>
@@ -1587,36 +1547,58 @@
 
             <!-- 今日预测播放 -->
             <div class="metric-card">
-              <div class="metric-label">${currentLang === 'zh' ? '今日预测播放' : 'Est. Daily Streams'}</div>
+              <div class="metric-label">${currentLang === 'zh' ? '今日预测播放' : 'Est. Daily Streams'} <span style="opacity:0.5;font-size:10px;">UTC</span></div>
               <div class="metric-value">${predictedStreams.toLocaleString()}</div>
               <div class="metric-compare">
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日' : 'Yesterday'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日预测' : 'Yesterday'}</span>
                   <span class="metric-compare-value">${yesterdayDailyStreams ? yesterdayDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, yesterdayDailyStreams))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周均值' : 'Week Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周预测' : 'Week Avg'}</span>
                   <span class="metric-compare-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisWeekDailyStreams))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月均值' : 'Month Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月预测' : 'Month Avg'}</span>
                   <span class="metric-compare-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisMonthDailyStreams))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史预测' : 'All-time Avg'}</span>
+                  <span class="metric-compare-value">${overallDailyStreams.toLocaleString()} ${formatChange(calcChange(predictedStreams, overallDailyStreams))}</span>
                 </div>
               </div>
             </div>
           </div>
-
-          ${marketInsightsHtml}
         `;
       } catch (e) {
         console.error('Failed to load hero section:', e);
       }
     }
 
+    // 计算线性回归趋势线
+    function calculateTrendLine(values) {
+      const n = values.length;
+      if (n < 2) return values;
+
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += values[i];
+        sumXY += i * values[i];
+        sumX2 += i * i;
+      }
+
+      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+
+      return values.map((_, i) => slope * i + intercept);
+    }
+
     // 加载主图表
     async function loadMainChart() {
       try {
-        const limit = currentRange === 0 ? 10000 : currentRange;
+        // 性能优化：限制请求数据量
+        const limit = currentRange === 0 ? 100000 : currentRange;
         const res = await fetch('/api/data?limit=' + limit);
         allData = await res.json();
 
@@ -1624,13 +1606,22 @@
 
         processedData = allData;
 
-        // 平滑模式：数据聚合
-        if (chartType === 'smooth') {
-          const aggregateSize = currentRange === 720 ? 12 :      // 1h: 每分钟 (12个点)
-                                currentRange === 4320 ? 60 :     // 6h: 每5分钟 (60个点)
-                                currentRange === 8640 ? 120 :    // 12h: 每10分钟 (120个点)
-                                currentRange === 17280 ? 240 :   // 24h: 每20分钟 (240个点)
-                                60;                              // 默认: 每5分钟
+        // 平滑模式或大数据量：数据聚合
+        const needsAggregation = chartType === 'smooth' || allData.length > 1000;
+
+        if (needsAggregation) {
+          // 根据数据量和时间范围动态计算聚合大小
+          let aggregateSize;
+          if (chartType === 'smooth') {
+            aggregateSize = currentRange === 720 ? 12 :      // 1h: 每分钟 (12个点)
+                            currentRange === 4320 ? 60 :     // 6h: 每5分钟 (60个点)
+                            currentRange === 8640 ? 120 :    // 12h: 每10分钟 (120个点)
+                            currentRange === 17280 ? 240 :   // 24h: 每20分钟 (240个点)
+                            Math.max(60, Math.floor(allData.length / 500)); // all: 动态
+          } else {
+            // 原始模式大数据量：采样以保持约500个点
+            aggregateSize = Math.max(1, Math.floor(allData.length / 500));
+          }
 
           processedData = [];
           for (let i = 0; i < allData.length; i += aggregateSize) {
@@ -1638,52 +1629,91 @@
             const avgCount = chunk.reduce((sum, d) => sum + d.listenerCount, 0) / chunk.length;
             processedData.push({
               timestamp: chunk[Math.floor(chunk.length / 2)].timestamp,
-              listenerCount: avgCount
+              listenerCount: chartType === 'smooth' ? avgCount : Math.round(avgCount)
             });
           }
         }
 
+        // 使用UTC时间格式化x轴标签
         const labels = processedData.map(d => {
           const date = new Date(d.timestamp);
-          return currentRange >= 8640 || currentRange === 0
-            ? date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
-            : date.toLocaleTimeString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {hour: '2-digit', minute: '2-digit'});
+          const hours = String(date.getUTCHours()).padStart(2, '0');
+          const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+
+          if (currentRange >= 8640 || currentRange === 0) {
+            // 长时间范围：显示日期+时间
+            const month = date.getUTCMonth() + 1;
+            const day = date.getUTCDate();
+            return `${month}/${day} ${hours}:${minutes}`;
+          } else {
+            // 短时间范围：只显示时间
+            return `${hours}:${minutes}`;
+          }
         });
         const values = processedData.map(d => d.listenerCount);
 
+        // 平滑模式下计算趋势线
+        const trendLineData = chartType === 'smooth' ? calculateTrendLine(values) : null;
+
         const ctx = document.getElementById('main-chart').getContext('2d');
+
+        const datasets = [{
+          label: currentLang === 'zh' ? '听众数' : 'Listeners',
+          data: values,
+          borderColor: '#1DB954',
+          borderWidth: 3,
+          backgroundColor: (context) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(29, 185, 84, 0.4)');
+            gradient.addColorStop(1, 'rgba(29, 185, 84, 0)');
+            return gradient;
+          },
+          fill: true,
+          tension: chartType === 'smooth' ? 0.4 : 0.1,
+          pointRadius: 0,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#1DB954',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 3
+        }];
+
+        // 平滑模式下添加趋势线
+        if (chartType === 'smooth' && trendLineData) {
+          datasets.push({
+            label: currentLang === 'zh' ? '趋势线' : 'Trend',
+            data: trendLineData,
+            borderColor: 'rgba(255, 165, 0, 0.8)',
+            borderWidth: 2,
+            borderDash: [8, 4],
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0,
+            pointRadius: 0,
+            pointHoverRadius: 0
+          });
+        }
 
         if (!mainChart) {
           mainChart = new Chart(ctx, {
             type: 'line',
-            data: {
-              labels,
-              datasets: [{
-                data: values,
-                borderColor: '#1DB954',
-                borderWidth: 3,
-                backgroundColor: (context) => {
-                  const ctx = context.chart.ctx;
-                  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                  gradient.addColorStop(0, 'rgba(29, 185, 84, 0.4)');
-                  gradient.addColorStop(1, 'rgba(29, 185, 84, 0)');
-                  return gradient;
-                },
-                fill: true,
-                tension: chartType === 'smooth' ? 0.4 : 0.1,
-                pointRadius: 0,
-                pointHoverRadius: 8,
-                pointHoverBackgroundColor: '#1DB954',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 3
-              }]
-            },
+            data: { labels, datasets },
             options: {
               responsive: true,
               maintainAspectRatio: false,
               interaction: { intersect: false, mode: 'index' },
               plugins: {
-                legend: { display: false },
+                legend: {
+                  display: chartType === 'smooth',
+                  position: 'top',
+                  align: 'end',
+                  labels: {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    usePointStyle: true,
+                    pointStyle: 'line',
+                    font: { size: 12 }
+                  }
+                },
                 tooltip: {
                   backgroundColor: 'rgba(0, 0, 0, 0.9)',
                   titleColor: '#1DB954',
@@ -1691,13 +1721,18 @@
                   titleFont: { size: 16, weight: '700' },
                   bodyFont: { size: 13, weight: '500' },
                   padding: 12,
-                  displayColors: false,
+                  displayColors: true,
                   callbacks: {
                     title: (items) => {
                       if (!items.length) return '';
-                      return items[0].parsed.y.toLocaleString() + ' ' + t('listeners');
+                      const mainItem = items.find(i => i.datasetIndex === 0);
+                      if (!mainItem) return '';
+                      return mainItem.parsed.y.toLocaleString() + ' ' + t('listeners');
                     },
                     label: (ctx) => {
+                      if (ctx.datasetIndex === 1) {
+                        return (currentLang === 'zh' ? '趋势: ' : 'Trend: ') + ctx.parsed.y.toFixed(1);
+                      }
                       const idx = ctx.dataIndex;
                       const dataPoint = processedData[idx];
                       if (!dataPoint) return '';
@@ -1735,12 +1770,113 @@
           });
         } else {
           mainChart.data.labels = labels;
-          mainChart.data.datasets[0].data = values;
-          mainChart.data.datasets[0].tension = chartType === 'smooth' ? 0.4 : 0.1;
+          mainChart.data.datasets = datasets;
+          mainChart.options.plugins.legend.display = chartType === 'smooth';
           mainChart.update('none');
+        }
+
+        // 更新图表副标题显示数据点数量
+        const subtitle = document.getElementById('chart-subtitle');
+        if (subtitle) {
+          const pointCount = processedData.length;
+          const originalCount = allData.length;
+          const rangeText = currentRange === 0
+            ? (currentLang === 'zh' ? '全部数据' : 'All data')
+            : (currentLang === 'zh' ? `最近${currentRange === 720 ? '1小时' : currentRange === 4320 ? '6小时' : currentRange === 8640 ? '12小时' : '24小时'}` : `Last ${currentRange === 720 ? '1h' : currentRange === 4320 ? '6h' : currentRange === 8640 ? '12h' : '24h'}`);
+          const modeText = chartType === 'smooth' ? (currentLang === 'zh' ? '平滑' : 'Smooth') : (currentLang === 'zh' ? '原始' : 'Raw');
+          subtitle.textContent = `${rangeText} · ${pointCount.toLocaleString()} ${currentLang === 'zh' ? '数据点' : 'points'} · ${modeText} (UTC)`;
         }
       } catch (e) {
         console.error('Failed to load main chart:', e);
+      }
+    }
+
+    // 加载时段排行
+    async function loadHourlyRanking() {
+      try {
+        const res = await fetch('/api/analytics/hourly');
+        const hourlyData = await res.json();
+
+        if (!hourlyData || hourlyData.length === 0) {
+          document.getElementById('hourly-ranking').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
+          return;
+        }
+
+        // 按平均值排序（降序）- API返回的字段是avgCount
+        const sorted = [...hourlyData].sort((a, b) => b.avgCount - a.avgCount);
+        const maxAvg = sorted[0].avgCount;
+
+        // UTC时区对应的各国本地时间
+        const getRegionalTimes = (utcHour) => {
+          const regions = [];
+          // 美国东部 (UTC-5)
+          const usEastern = (utcHour - 5 + 24) % 24;
+          // 日本 (UTC+9)
+          const japan = (utcHour + 9) % 24;
+          // 英国 (UTC+0)
+          const uk = utcHour;
+          // 德国 (UTC+1)
+          const germany = (utcHour + 1) % 24;
+          // 巴西 (UTC-3)
+          const brazil = (utcHour - 3 + 24) % 24;
+
+          const formatTime = (hour) => {
+            if (hour >= 6 && hour < 12) return currentLang === 'zh' ? '上午' : 'Morning';
+            if (hour >= 12 && hour < 18) return currentLang === 'zh' ? '下午' : 'Afternoon';
+            if (hour >= 18 && hour < 22) return currentLang === 'zh' ? '晚间' : 'Evening';
+            return currentLang === 'zh' ? '深夜' : 'Night';
+          };
+
+          regions.push({ flag: '🇺🇸', name: 'US', hour: usEastern, period: formatTime(usEastern) });
+          regions.push({ flag: '🇯🇵', name: 'JP', hour: japan, period: formatTime(japan) });
+          regions.push({ flag: '🇬🇧', name: 'UK', hour: uk, period: formatTime(uk) });
+          regions.push({ flag: '🇩🇪', name: 'DE', hour: germany, period: formatTime(germany) });
+          regions.push({ flag: '🇧🇷', name: 'BR', hour: brazil, period: formatTime(brazil) });
+
+          return regions;
+        };
+
+        const rows = sorted.map((h, idx) => {
+          const barWidth = (h.avgCount / maxAvg * 100).toFixed(1);
+          const regions = getRegionalTimes(h.hour);
+          const isTop3 = idx < 3;
+          const isBottom3 = idx >= sorted.length - 3;
+
+          return `
+            <div class="hourly-row">
+              <div class="hourly-rank ${isTop3 ? 'top3' : ''}">#${idx + 1}</div>
+              <div class="hourly-time">
+                ${String(h.hour).padStart(2, '0')}:00 UTC
+                ${isTop3 ? `<span class="insight-tag">${t('hourly.peak')}</span>` : ''}
+                ${isBottom3 ? `<span class="insight-tag low">${t('hourly.low')}</span>` : ''}
+              </div>
+              <div class="hourly-regions">
+                ${regions.map(r => `<span class="hourly-region">${r.flag} ${r.name} ${r.hour}:00 ${r.period}</span>`).join('')}
+              </div>
+              <div class="hourly-avg">
+                ${h.avgCount.toLocaleString()}
+                <div class="hourly-bar-container">
+                  <div class="hourly-bar" style="width: ${barWidth}%"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('hourly-ranking').innerHTML = `
+          <div class="hourly-table">
+            <div class="hourly-row header">
+              <div>${currentLang === 'zh' ? '排名' : 'Rank'}</div>
+              <div>${currentLang === 'zh' ? 'UTC时间' : 'UTC Time'}</div>
+              <div>${currentLang === 'zh' ? '各地时间' : 'Local Times'}</div>
+              <div>${currentLang === 'zh' ? '平均听众' : 'Avg Listeners'}</div>
+            </div>
+            ${rows}
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load hourly ranking:', e);
+        document.getElementById('hourly-ranking').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
       }
     }
 
@@ -1805,8 +1941,9 @@
     // 刷新所有数据
     async function refresh() {
       await Promise.all([
-        loadHeroSection(),  // 独立刷新今日数据
+        loadHeroSection(),
         loadMainChart(),
+        loadHourlyRanking(),
         checkStatus()
       ]);
     }
