@@ -190,65 +190,41 @@
     /* 核心指标行 */
     .hero-main {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(4, 1fr);
       gap: 20px;
       margin-bottom: 24px;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1200px) {
+      .hero-main {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
       .hero-main {
         grid-template-columns: 1fr;
       }
     }
 
-    /* 当前听众大卡片 */
-    .current-card {
-      background: linear-gradient(135deg, #1DB954, #1ed760);
-      border-radius: 20px;
-      padding: 32px;
-      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
-    }
-
-    .current-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.9);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .current-value {
-      font-size: 56px;
-      font-weight: 800;
-      color: white;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .current-trend {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 700;
-      color: white;
-    }
-
-    /* 次要指标卡片 */
-    .secondary-card {
+    /* 统一的指标卡片 */
+    .metric-card {
       background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
       border: 1px solid var(--border-color);
       border-radius: 20px;
-      padding: 32px;
+      padding: 24px;
       position: relative;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
-    .secondary-card::before {
+    .metric-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border-color: rgba(29, 185, 84, 0.3);
+    }
+
+    .metric-card::before {
       content: '';
       position: absolute;
       top: 0;
@@ -258,87 +234,97 @@
       background: linear-gradient(90deg, var(--spotify-green), #1ed760);
     }
 
-    .secondary-label {
-      font-size: 13px;
+    .metric-card.primary {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border: none;
+      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+    }
+
+    .metric-card.primary::before {
+      display: none;
+    }
+
+    .metric-card.primary .metric-label,
+    .metric-card.primary .metric-value,
+    .metric-card.primary .metric-compare-label,
+    .metric-card.primary .metric-compare-value {
+      color: white;
+    }
+
+    .metric-card.primary .metric-compare-item {
+      background: rgba(255,255,255,0.15);
+    }
+
+    .metric-label {
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 12px;
-    }
-
-    .secondary-value {
-      font-size: 42px;
-      font-weight: 800;
-      color: var(--text-primary);
-      line-height: 1;
       margin-bottom: 8px;
     }
 
-    .secondary-subtitle {
-      font-size: 13px;
-      color: var(--text-tertiary);
-    }
-
-    /* 数据对比表格 */
-    .comparison-table {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .comparison-header {
-      display: grid;
-      grid-template-columns: 100px repeat(3, 1fr);
-      background: var(--bg-tertiary);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .comparison-header-cell {
-      padding: 16px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      text-align: center;
-    }
-
-    .comparison-header-cell:first-child {
-      text-align: left;
-    }
-
-    .comparison-row {
-      display: grid;
-      grid-template-columns: 100px repeat(3, 1fr);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .comparison-row:last-child {
-      border-bottom: none;
-    }
-
-    .comparison-row:first-child .comparison-value {
-      color: var(--spotify-green);
-    }
-
-    .comparison-cell {
-      padding: 16px 12px;
-      text-align: center;
-    }
-
-    .comparison-cell:first-child {
-      text-align: left;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-
-    .comparison-value {
-      font-size: 18px;
-      font-weight: 700;
+    .metric-value {
+      font-size: 36px;
+      font-weight: 800;
       color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .metric-compare {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-compare-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .metric-compare-label {
+      color: var(--text-secondary);
+    }
+
+    .metric-compare-value {
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric-change {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .metric-change.up {
+      color: #1DB954;
+      background: rgba(29, 185, 84, 0.15);
+    }
+
+    .metric-change.down {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .metric-card.primary .metric-change.up {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .metric-card.primary .metric-change.down {
+      background: rgba(255,255,255,0.2);
+      color: #ffcdd2;
     }
 
     /* 市场洞察区 */
@@ -1460,8 +1446,8 @@
           if (change === null) return '';
           const num = parseFloat(change);
           const arrow = num >= 0 ? '↗' : '↘';
-          const color = num >= 0 ? '#1DB954' : '#ef4444';
-          return `<span style="color: ${color}; font-size: 12px; margin-left: 4px;">${arrow}${Math.abs(num)}%</span>`;
+          const cls = num >= 0 ? 'up' : 'down';
+          return `<span class="metric-change ${cls}">${arrow}${Math.abs(num)}%</span>`;
         };
 
         // === 市场洞察 ===
@@ -1537,59 +1523,86 @@
 
         // 渲染完整的数据概览
         document.getElementById('hero-content').innerHTML = `
-          <!-- 核心指标行 -->
+          <!-- 核心指标卡片 -->
           <div class="hero-main">
-            <div class="current-card">
-              <div class="current-label">${t('hero.current')}</div>
-              <div class="current-value">${current.toLocaleString()}</div>
-              <div class="current-trend">
-                <span>${isUp ? '↗' : '↘'}</span>
-                <span>${Math.abs(trend1h)}% ${t('hero.vs1h')}</span>
+            <!-- 当前听众 -->
+            <div class="metric-card primary">
+              <div class="metric-label">${t('hero.current')}</div>
+              <div class="metric-value">${current.toLocaleString()}</div>
+              <div class="metric-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 今日平均' : 'vs Today Avg'}</span>
+                  <span class="metric-compare-value">${formatChange(calcChange(current, todayAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 昨日平均' : 'vs Yesterday'}</span>
+                  <span class="metric-compare-value">${formatChange(calcChange(current, yesterdayAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? 'vs 历史平均' : 'vs All-time'}</span>
+                  <span class="metric-compare-value">${formatChange(calcChange(current, overallAvg))}</span>
+                </div>
               </div>
             </div>
-            <div class="secondary-card">
-              <div class="secondary-label">${t('hero.todayPeak')}</div>
-              <div class="secondary-value">${todayPeak.toLocaleString()}</div>
-              <div class="secondary-subtitle">${currentLang === 'zh' ? '今日最高' : 'Today\'s highest'}</div>
-            </div>
-            <div class="secondary-card">
-              <div class="secondary-label">${t('hero.todayPrediction')}</div>
-              <div class="secondary-value">${predictedStreams.toLocaleString()}</div>
-              <div class="secondary-subtitle">${t('hero.based')}</div>
-            </div>
-          </div>
 
-          <!-- 数据对比表格 -->
-          <div class="comparison-table">
-            <div class="comparison-header">
-              <div class="comparison-header-cell"></div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '平均' : 'Average'}</div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '峰值' : 'Peak'}</div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '预测日播' : 'Est. Daily'}</div>
+            <!-- 今日平均 -->
+            <div class="metric-card">
+              <div class="metric-label">${currentLang === 'zh' ? '今日平均' : 'Today Average'}</div>
+              <div class="metric-value">${todayAvg.toFixed(1)}</div>
+              <div class="metric-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日' : 'Yesterday'}</span>
+                  <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, yesterdayAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周' : 'This Week'}</span>
+                  <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisWeekAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月' : 'This Month'}</span>
+                  <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisMonthAvg))}</span>
+                </div>
+              </div>
             </div>
-            <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '今日' : 'Today'}<br><span style="font-size:11px;opacity:0.6;">${currentLang === 'zh' ? 'vs昨日' : 'vs Yesterday'}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${todayAvg.toFixed(1)}</span>${formatChange(calcChange(todayAvg, yesterdayAvg))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${todayPeak.toLocaleString()}</span>${formatChange(calcChange(todayPeak, yesterdayPeak))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${predictedStreams.toLocaleString()}</span>${formatChange(calcChange(predictedStreams, yesterdayDailyStreams))}</div>
+
+            <!-- 今日峰值 -->
+            <div class="metric-card">
+              <div class="metric-label">${currentLang === 'zh' ? '今日峰值' : 'Today Peak'}</div>
+              <div class="metric-value">${todayPeak.toLocaleString()}</div>
+              <div class="metric-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周峰值' : 'Week Peak'}</span>
+                  <span class="metric-compare-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisWeekPeak))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月峰值' : 'Month Peak'}</span>
+                  <span class="metric-compare-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisMonthPeak))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史峰值' : 'All-time'}</span>
+                  <span class="metric-compare-value">${overallPeak.toLocaleString()} ${formatChange(calcChange(todayPeak, overallPeak))}</span>
+                </div>
+              </div>
             </div>
-            <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '本周' : 'This Week'}<br><span style="font-size:11px;opacity:0.6;">${currentLang === 'zh' ? 'vs上周' : 'vs Last Week'}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'}</span>${formatChange(calcChange(thisWeekAvg, lastWeekAvg))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'}</span>${formatChange(calcChange(thisWeekPeak, lastWeekPeak))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'}</span>${formatChange(calcChange(thisWeekDailyStreams, lastWeekDailyStreams))}</div>
-            </div>
-            <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '本月' : 'This Month'}<br><span style="font-size:11px;opacity:0.6;">${currentLang === 'zh' ? 'vs上月' : 'vs Last Month'}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'}</span>${formatChange(calcChange(thisMonthAvg, lastMonthAvg))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'}</span>${formatChange(calcChange(thisMonthPeak, lastMonthPeak))}</div>
-              <div class="comparison-cell"><span class="comparison-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'}</span>${formatChange(calcChange(thisMonthDailyStreams, lastMonthDailyStreams))}</div>
-            </div>
-            <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '全部' : 'All Time'}</div>
-              <div class="comparison-cell"><span class="comparison-value">${overallAvg.toFixed(1)}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${overallPeak.toLocaleString()}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${overallDailyStreams.toLocaleString()}</span></div>
+
+            <!-- 今日预测播放 -->
+            <div class="metric-card">
+              <div class="metric-label">${currentLang === 'zh' ? '今日预测播放' : 'Est. Daily Streams'}</div>
+              <div class="metric-value">${predictedStreams.toLocaleString()}</div>
+              <div class="metric-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日' : 'Yesterday'}</span>
+                  <span class="metric-compare-value">${yesterdayDailyStreams ? yesterdayDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, yesterdayDailyStreams))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周均值' : 'Week Avg'}</span>
+                  <span class="metric-compare-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisWeekDailyStreams))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月均值' : 'Month Avg'}</span>
+                  <span class="metric-compare-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisMonthDailyStreams))}</span>
+                </div>
+              </div>
             </div>
           </div>
 
