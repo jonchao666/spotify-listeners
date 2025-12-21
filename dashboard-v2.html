@@ -290,7 +290,7 @@
 
     .comparison-header {
       display: grid;
-      grid-template-columns: 100px repeat(4, 1fr);
+      grid-template-columns: 100px repeat(3, 1fr);
       background: var(--bg-tertiary);
       border-bottom: 1px solid var(--border-color);
     }
@@ -311,12 +311,16 @@
 
     .comparison-row {
       display: grid;
-      grid-template-columns: 100px repeat(4, 1fr);
+      grid-template-columns: 100px repeat(3, 1fr);
       border-bottom: 1px solid var(--border-color);
     }
 
     .comparison-row:last-child {
       border-bottom: none;
+    }
+
+    .comparison-row:first-child .comparison-value {
+      color: var(--spotify-green);
     }
 
     .comparison-cell {
@@ -335,10 +339,6 @@
       font-size: 18px;
       font-weight: 700;
       color: var(--text-primary);
-    }
-
-    .comparison-value.highlight {
-      color: var(--spotify-green);
     }
 
     /* 市场洞察区 */
@@ -1409,6 +1409,13 @@
         const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
         const overallPeak = Math.max(...allValues);
 
+        // === 计算各时期预测每日播放量 ===
+        // 公式: 平均听众 * 24小时 * 60分钟 / 3分钟(每首歌) = 每日播放
+        const calcDailyStreams = (avg) => avg ? Math.round((avg * 24 * 60) / 3) : null;
+        const thisWeekDailyStreams = calcDailyStreams(thisWeekAvg);
+        const thisMonthDailyStreams = calcDailyStreams(thisMonthAvg);
+        const overallDailyStreams = calcDailyStreams(overallAvg);
+
         // === 市场洞察 ===
         let marketInsightsHtml = '';
         if (hourlyData.length > 0) {
@@ -1508,24 +1515,33 @@
           <div class="comparison-table">
             <div class="comparison-header">
               <div class="comparison-header-cell"></div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '今日' : 'Today'}</div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '本周' : 'This Week'}</div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '本月' : 'This Month'}</div>
-              <div class="comparison-header-cell">${currentLang === 'zh' ? '全部' : 'All Time'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '平均' : 'Average'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '峰值' : 'Peak'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '预测日播' : 'Est. Daily'}</div>
             </div>
             <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '平均' : 'Average'}</div>
-              <div class="comparison-cell"><span class="comparison-value highlight">${todayAvg.toFixed(1)}</span></div>
+              <div class="comparison-cell">${currentLang === 'zh' ? '今日' : 'Today'}</div>
+              <div class="comparison-cell"><span class="comparison-value">${todayAvg.toFixed(1)}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${todayPeak.toLocaleString()}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${predictedStreams.toLocaleString()}</span></div>
+            </div>
+            <div class="comparison-row">
+              <div class="comparison-cell">${currentLang === 'zh' ? '本周' : 'This Week'}</div>
               <div class="comparison-cell"><span class="comparison-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${overallAvg.toFixed(1)}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'}</span></div>
             </div>
             <div class="comparison-row">
-              <div class="comparison-cell">${currentLang === 'zh' ? '峰值' : 'Peak'}</div>
-              <div class="comparison-cell"><span class="comparison-value highlight">${todayPeak.toLocaleString()}</span></div>
-              <div class="comparison-cell"><span class="comparison-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'}</span></div>
+              <div class="comparison-cell">${currentLang === 'zh' ? '本月' : 'This Month'}</div>
+              <div class="comparison-cell"><span class="comparison-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'}</span></div>
               <div class="comparison-cell"><span class="comparison-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'}</span></div>
+            </div>
+            <div class="comparison-row">
+              <div class="comparison-cell">${currentLang === 'zh' ? '全部' : 'All Time'}</div>
+              <div class="comparison-cell"><span class="comparison-value">${overallAvg.toFixed(1)}</span></div>
               <div class="comparison-cell"><span class="comparison-value">${overallPeak.toLocaleString()}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${overallDailyStreams.toLocaleString()}</span></div>
             </div>
           </div>
 
