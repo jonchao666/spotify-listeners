@@ -1575,23 +1575,30 @@
       }
     }
 
-    // 计算线性回归趋势线
+    // 计算移动平均趋势线
     function calculateTrendLine(values) {
       const n = values.length;
       if (n < 2) return values;
 
-      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      // 动态计算窗口大小：数据点的10%，最小5，最大50
+      const windowSize = Math.max(5, Math.min(50, Math.floor(n * 0.1)));
+      const result = [];
+
       for (let i = 0; i < n; i++) {
-        sumX += i;
-        sumY += values[i];
-        sumXY += i * values[i];
-        sumX2 += i * i;
+        // 计算以当前点为中心的窗口范围
+        const halfWindow = Math.floor(windowSize / 2);
+        const start = Math.max(0, i - halfWindow);
+        const end = Math.min(n, i + halfWindow + 1);
+
+        // 计算窗口内的平均值
+        let sum = 0;
+        for (let j = start; j < end; j++) {
+          sum += values[j];
+        }
+        result.push(sum / (end - start));
       }
 
-      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-      const intercept = (sumY - slope * sumX) / n;
-
-      return values.map((_, i) => slope * i + intercept);
+      return result;
     }
 
     // 加载主图表
@@ -1678,19 +1685,19 @@
           pointHoverBorderWidth: 3
         }];
 
-        // 平滑模式下添加趋势线
+        // 平滑模式下添加移动平均趋势线
         if (chartType === 'smooth' && trendLineData) {
           datasets.push({
-            label: currentLang === 'zh' ? '趋势线' : 'Trend',
+            label: currentLang === 'zh' ? '移动平均' : 'Moving Avg',
             data: trendLineData,
-            borderColor: 'rgba(255, 165, 0, 0.8)',
-            borderWidth: 2,
-            borderDash: [8, 4],
+            borderColor: 'rgba(255, 165, 0, 0.9)',
+            borderWidth: 2.5,
             backgroundColor: 'transparent',
             fill: false,
-            tension: 0,
+            tension: 0.3,
             pointRadius: 0,
-            pointHoverRadius: 0
+            pointHoverRadius: 4,
+            pointHoverBackgroundColor: 'rgba(255, 165, 0, 1)'
           });
         }
 
@@ -1731,7 +1738,7 @@
                     },
                     label: (ctx) => {
                       if (ctx.datasetIndex === 1) {
-                        return (currentLang === 'zh' ? '趋势: ' : 'Trend: ') + ctx.parsed.y.toFixed(1);
+                        return (currentLang === 'zh' ? '移动平均: ' : 'Moving Avg: ') + ctx.parsed.y.toFixed(1);
                       }
                       const idx = ctx.dataIndex;
                       const dataPoint = processedData[idx];
