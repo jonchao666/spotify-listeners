@@ -1238,12 +1238,16 @@
             return local.toString().padStart(2, '0') + ':00';
           };
 
+          // 按时区从西到东排序，同一时区的写在一起
           const timezones = [
-            { name: 'US-ET', time: getLocalHour(-5) },   // 美国东部时间 (ET)
-            { name: 'US-PT', time: getLocalHour(-8) },   // 美国太平洋时间 (PT)
-            { name: 'UK', time: getLocalHour(0) },       // 英国 (GMT/UTC)
-            { name: 'DE', time: getLocalHour(1) },       // 德国 (CET)
-            { name: 'JP', time: getLocalHour(9) }        // 日本 (JST)
+            { name: 'US-PT', time: getLocalHour(-8) },    // 美国太平洋 UTC-8
+            { name: 'MX', time: getLocalHour(-6) },       // 墨西哥 UTC-6
+            { name: 'US-ET', time: getLocalHour(-5) },    // 美国东部 UTC-5
+            { name: 'BR', time: getLocalHour(-3) },       // 巴西 UTC-3
+            { name: 'UK', time: getLocalHour(0) },        // 英国 UTC+0
+            { name: 'DE', time: getLocalHour(1) },        // 德国 UTC+1
+            { name: 'JP', time: getLocalHour(9) },        // 日本 UTC+9
+            { name: 'AU', time: getLocalHour(10) }        // 澳大利亚 UTC+10
           ];
 
           return `
