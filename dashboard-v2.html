@@ -1195,11 +1195,12 @@
       });
     });
 
-    // 加载首屏重点数据
+    // 加载首屏重点数据（独立获取数据，不依赖图表时间范围）
     async function loadHeroSection() {
       try {
-        const res = await fetch('/api/stats');
-        const stats = await res.json();
+        // 获取统计数据
+        const statsRes = await fetch('/api/stats');
+        const stats = await statsRes.json();
 
         if (!stats || stats.totalRecords === 0) {
           document.getElementById('key-metrics').innerHTML = `<div class="loading">${t('na')}</div>`;
@@ -1207,6 +1208,10 @@
         }
 
         const current = stats.latestCount;
+
+        // 单独获取今日数据（获取足够多的数据点覆盖24小时）
+        const heroDataRes = await fetch('/api/data?limit=17280');
+        const heroData = await heroDataRes.json();
 
         // 使用UTC时间计算今日数据（UTC 0点到现在）
         const nowUTC = new Date();
@@ -1216,7 +1221,7 @@
           nowUTC.getUTCDate(),
           0, 0, 0, 0
         ));
-        const todayData = allData.filter(d => new Date(d.timestamp) >= todayStartUTC);
+        const todayData = heroData.filter(d => new Date(d.timestamp) >= todayStartUTC);
         const todayAvg = todayData.length > 0
           ? todayData.reduce((s, d) => s + d.listenerCount, 0) / todayData.length
           : current;
@@ -1232,8 +1237,8 @@
           ? Math.round((todayAvg * 24 * 60) / 3)
           : 0;
 
-        // 计算对比1小时前
-        const data1h = allData.slice(-720);
+        // 计算对比1小时前（使用heroData的最近720个点）
+        const data1h = heroData.slice(-720);
         const avg1h = data1h.length > 0 ? data1h.reduce((s, d) => s + d.listenerCount, 0) / data1h.length : 0;
         const trend1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
         const isUp = parseFloat(trend1h) > 0;
@@ -1413,7 +1418,7 @@
           mainChart.update('none');
         }
 
-        loadHeroSection();
+        // loadHourlyStats和loadAnalysis依赖allData，需要在图表加载后调用
         loadHourlyStats();
         loadAnalysis();
       } catch (e) {
@@ -1803,6 +1808,7 @@
     // 刷新所有数据
     async function refresh() {
       await Promise.all([
+        loadHeroSection(),  // 独立刷新今日数据
         loadMainChart(),
         checkStatus()
       ]);
