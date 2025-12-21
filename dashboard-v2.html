@@ -1386,15 +1386,15 @@
         const trend1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
         const isUp = parseFloat(trend1h) > 0;
 
-        // === 本周数据 (UTC) ===
-        const weekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - nowUTC.getUTCDay()));
+        // === 过去7天数据 (UTC) ===
+        const weekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 6, 0, 0, 0));
         const thisWeekData = heroData.filter(d => new Date(d.timestamp) >= weekStartUTC);
         const thisWeekValues = thisWeekData.map(d => d.listenerCount);
         const thisWeekAvg = thisWeekValues.length > 0 ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length : null;
         const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
 
-        // === 本月数据 (UTC) ===
-        const monthStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), 1));
+        // === 近30天数据 (UTC) ===
+        const monthStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 29, 0, 0, 0));
         const thisMonthData = heroData.filter(d => new Date(d.timestamp) >= monthStartUTC);
         const thisMonthValues = thisMonthData.map(d => d.listenerCount);
         const thisMonthAvg = thisMonthValues.length > 0 ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length : null;
@@ -1423,9 +1423,9 @@
         const yesterdayPeak = yesterdayValues.length > 0 ? Math.max(...yesterdayValues) : null;
         const yesterdayDailyStreams = calcDailyStreams(yesterdayAvg);
 
-        // === 上周数据 (用于对比) ===
-        const lastWeekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - nowUTC.getUTCDay() - 7));
-        const lastWeekEndUTC = weekStartUTC;
+        // === 7-14天前数据 (用于对比) ===
+        const lastWeekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 13, 0, 0, 0));
+        const lastWeekEndUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 6, 0, 0, 0));
         const lastWeekData = heroData.filter(d => {
           const ts = new Date(d.timestamp);
           return ts >= lastWeekStartUTC && ts < lastWeekEndUTC;
@@ -1483,11 +1483,11 @@
                   <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, yesterdayAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周平均' : 'Week Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
                   <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisWeekAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月平均' : 'Month Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
                   <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisMonthAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
@@ -1507,11 +1507,11 @@
                   <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, yesterdayAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周平均' : 'Week Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
                   <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisWeekAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月平均' : 'Month Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
                   <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisMonthAvg))}</span>
                 </div>
                 <div class="metric-compare-item">
@@ -1531,11 +1531,11 @@
                   <span class="metric-compare-value">${yesterdayPeak ? yesterdayPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, yesterdayPeak))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周峰值' : 'Week Peak'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天峰值' : '7 Days Peak'}</span>
                   <span class="metric-compare-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisWeekPeak))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月峰值' : 'Month Peak'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天峰值' : '30 Days Peak'}</span>
                   <span class="metric-compare-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisMonthPeak))}</span>
                 </div>
                 <div class="metric-compare-item">
@@ -1555,11 +1555,11 @@
                   <span class="metric-compare-value">${yesterdayDailyStreams ? yesterdayDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, yesterdayDailyStreams))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本周预测' : 'Week Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
                   <span class="metric-compare-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisWeekDailyStreams))}</span>
                 </div>
                 <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '本月预测' : 'Month Avg'}</span>
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
                   <span class="metric-compare-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisMonthDailyStreams))}</span>
                 </div>
                 <div class="metric-compare-item">
