@@ -1568,66 +1568,71 @@
       return flags[code] || '🌍';
     }
 
-    // 加载数据分析
+    // 加载数据分析（独立获取数据，不依赖图表时间范围）
     async function loadAnalysis() {
-      if (allData.length < 720) {
-        document.getElementById('analysis-grid').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
-        return;
-      }
+      try {
+        // 获取足够多的数据用于分析（约2周数据）
+        const analysisRes = await fetch('/api/data?limit=250000');
+        const analysisData = await analysisRes.json();
 
-      const values = allData.map(d => d.listenerCount);
-      const currentAvg = values.reduce((a, b) => a + b, 0) / values.length;
+        if (analysisData.length < 720) {
+          document.getElementById('analysis-grid').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
+          return;
+        }
 
-      // 昨天数据（假设有24小时数据，取前一天的同时段）
-      const oneDayPoints = 17280; // 24小时
-      const yesterdayData = allData.slice(-oneDayPoints * 2, -oneDayPoints);
-      const yesterdayAvg = yesterdayData.length > 0
-        ? yesterdayData.reduce((s, d) => s + d.listenerCount, 0) / yesterdayData.length
-        : null;
+        const values = analysisData.map(d => d.listenerCount);
+        const currentAvg = values.reduce((a, b) => a + b, 0) / values.length;
 
-      // 上周数据
-      const oneWeekPoints = oneDayPoints * 7;
-      const lastWeekData = allData.slice(-oneWeekPoints - oneDayPoints, -oneWeekPoints);
-      const lastWeekAvg = lastWeekData.length > 0
-        ? lastWeekData.reduce((s, d) => s + d.listenerCount, 0) / lastWeekData.length
-        : null;
+        // 昨天数据（取前一天的同时段）
+        const oneDayPoints = 17280; // 24小时
+        const yesterdayData = analysisData.slice(-oneDayPoints * 2, -oneDayPoints);
+        const yesterdayAvg = yesterdayData.length > 0
+          ? yesterdayData.reduce((s, d) => s + d.listenerCount, 0) / yesterdayData.length
+          : null;
 
-      // 本周数据（UTC时间）
-      const nowUTC = new Date();
-      const weekStartUTC = new Date(Date.UTC(
-        nowUTC.getUTCFullYear(),
-        nowUTC.getUTCMonth(),
-        nowUTC.getUTCDate() - nowUTC.getUTCDay()
-      ));
-      const thisWeekData = allData.filter(d => new Date(d.timestamp) >= weekStartUTC);
-      const thisWeekValues = thisWeekData.map(d => d.listenerCount);
-      const thisWeekAvg = thisWeekValues.length > 0
-        ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length
-        : null;
-      const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
+        // 上周数据
+        const oneWeekPoints = oneDayPoints * 7;
+        const lastWeekData = analysisData.slice(-oneWeekPoints - oneDayPoints, -oneWeekPoints);
+        const lastWeekAvg = lastWeekData.length > 0
+          ? lastWeekData.reduce((s, d) => s + d.listenerCount, 0) / lastWeekData.length
+          : null;
 
-      // 本月数据（UTC时间）
-      const monthStartUTC = new Date(Date.UTC(
-        nowUTC.getUTCFullYear(),
-        nowUTC.getUTCMonth(),
-        1
-      ));
-      const thisMonthData = allData.filter(d => new Date(d.timestamp) >= monthStartUTC);
-      const thisMonthValues = thisMonthData.map(d => d.listenerCount);
-      const thisMonthAvg = thisMonthValues.length > 0
-        ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length
-        : null;
-      const thisMonthPeak = thisMonthValues.length > 0 ? Math.max(...thisMonthValues) : null;
+        // 本周数据（UTC时间）
+        const nowUTC = new Date();
+        const weekStartUTC = new Date(Date.UTC(
+          nowUTC.getUTCFullYear(),
+          nowUTC.getUTCMonth(),
+          nowUTC.getUTCDate() - nowUTC.getUTCDay()
+        ));
+        const thisWeekData = analysisData.filter(d => new Date(d.timestamp) >= weekStartUTC);
+        const thisWeekValues = thisWeekData.map(d => d.listenerCount);
+        const thisWeekAvg = thisWeekValues.length > 0
+          ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length
+          : null;
+        const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
 
-      // 整体统计
-      const overallAvg = currentAvg;
-      const overallPeak = Math.max(...values);
-      const overallMin = Math.min(...values);
+        // 本月数据（UTC时间）
+        const monthStartUTC = new Date(Date.UTC(
+          nowUTC.getUTCFullYear(),
+          nowUTC.getUTCMonth(),
+          1
+        ));
+        const thisMonthData = analysisData.filter(d => new Date(d.timestamp) >= monthStartUTC);
+        const thisMonthValues = thisMonthData.map(d => d.listenerCount);
+        const thisMonthAvg = thisMonthValues.length > 0
+          ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length
+          : null;
+        const thisMonthPeak = thisMonthValues.length > 0 ? Math.max(...thisMonthValues) : null;
 
-      const vsYesterday = yesterdayAvg ? ((currentAvg - yesterdayAvg) / yesterdayAvg * 100).toFixed(1) : null;
-      const vsLastWeek = lastWeekAvg ? ((currentAvg - lastWeekAvg) / lastWeekAvg * 100).toFixed(1) : null;
+        // 整体统计（基于所有获取的数据）
+        const overallAvg = currentAvg;
+        const overallPeak = Math.max(...values);
+        const overallMin = Math.min(...values);
 
-      const html = `
+        const vsYesterday = yesterdayAvg ? ((currentAvg - yesterdayAvg) / yesterdayAvg * 100).toFixed(1) : null;
+        const vsLastWeek = lastWeekAvg ? ((currentAvg - lastWeekAvg) / lastWeekAvg * 100).toFixed(1) : null;
+
+        const html = `
         ${yesterdayAvg ? `
         <div class="analysis-card">
           <div class="analysis-title">${t('analysis.yesterday')}</div>
@@ -1742,9 +1747,12 @@
             </div>
           </div>
         </div>
-      `;
+        `;
 
-      document.getElementById('analysis-grid').innerHTML = html;
+        document.getElementById('analysis-grid').innerHTML = html;
+      } catch (e) {
+        console.error('Failed to load analysis:', e);
+      }
     }
 
     // 检查状态
