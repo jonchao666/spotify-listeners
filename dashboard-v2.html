@@ -187,66 +187,42 @@
       margin-bottom: 64px;
     }
 
-    /* 超大当前听众卡片 */
-    .primary-metric {
-      background: linear-gradient(135deg, #1DB954, #1ed760);
-      border-radius: 24px;
-      padding: 48px;
-      margin-bottom: 24px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(29, 185, 84, 0.3);
-    }
-
-    .primary-metric::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(255,255,255,0.2), transparent);
-      border-radius: 50%;
-    }
-
-    .primary-label {
-      font-size: 16px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      opacity: 0.9;
-      margin-bottom: 16px;
-      color: white;
-    }
-
-    .primary-value {
-      font-size: 96px;
-      font-weight: 900;
-      line-height: 1;
-      color: white;
-      margin-bottom: 20px;
-      letter-spacing: -4px;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-
-    .primary-trend {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .primary-trend-icon {
-      font-size: 28px;
-    }
-
     /* 关键指标网格 */
     .key-metrics {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
+    }
+
+    /* 当前听众卡片（特殊样式） */
+    .key-metric-card.primary {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border: none;
+      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+    }
+
+    .key-metric-card.primary::before {
+      display: none;
+    }
+
+    .key-metric-card.primary .key-metric-label,
+    .key-metric-card.primary .key-metric-value,
+    .key-metric-card.primary .key-metric-subtitle,
+    .key-metric-card.primary .key-metric-trend {
+      color: white;
+    }
+
+    .key-metric-trend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .key-metric-trend-icon {
+      font-size: 18px;
     }
 
     .key-metric-card {
@@ -403,7 +379,7 @@
 
     .stat-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       margin-bottom: 16px;
       padding-bottom: 12px;
@@ -413,6 +389,18 @@
     .stat-hour {
       font-size: 18px;
       font-weight: 700;
+    }
+
+    .stat-timezones {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .stat-timezone {
+      display: inline-block;
+      margin-right: 8px;
     }
 
     .stat-badge {
@@ -752,19 +740,16 @@
     <section class="hero-section">
       <div class="section-header">
         <h2 class="section-title" data-i18n="section.overview">核心概览</h2>
-        <p class="section-subtitle" data-i18n="section.overviewDesc">最重要的实时数据一目了然</p>
+        <p class="section-subtitle" data-i18n="section.overviewDesc">最重要的实时数据一目了然 <span style="opacity: 0.6; font-size: 12px;" data-i18n="timezone.utc">(UTC时区)</span></p>
       </div>
 
-      <!-- 超大当前听众数 -->
-      <div class="primary-metric" id="primary-metric">
+      <!-- 关键指标网格（包含当前听众） -->
+      <div class="key-metrics" id="key-metrics">
         <div class="loading">
           <div class="spinner"></div>
-          <p style="color: rgba(255,255,255,0.7);" data-i18n="loading">加载中...</p>
+          <p data-i18n="loading">加载中...</p>
         </div>
       </div>
-
-      <!-- 关键指标网格 -->
-      <div class="key-metrics" id="key-metrics"></div>
     </section>
 
     <!-- ========== 第二部分：图表区域 ========== -->
@@ -866,6 +851,7 @@
         'loading': '加载中...',
         'section.overview': '核心概览',
         'section.overviewDesc': '最重要的实时数据一目了然',
+        'timezone.utc': '(UTC时区)',
         'section.charts': '趋势图表',
         'section.chartsDesc': '数据可视化分析',
         'section.hourlyStats': '时段统计',
@@ -891,7 +877,9 @@
         'hero.current': '当前听众',
         'hero.todayAvg': '今日平均',
         'hero.prediction': '预测播放量',
+        'hero.todayPrediction': '今日预测播放',
         'hero.peak': '今日峰值',
+        'hero.todayPeak': '今日峰值',
         'hero.vs1h': '对比1小时前',
         'hero.predictedStreams': '预计今日播放',
         'hero.based': '基于平均听众数估算',
@@ -923,6 +911,7 @@
         'loading': 'Loading...',
         'section.overview': 'Overview',
         'section.overviewDesc': 'Key metrics at a glance',
+        'timezone.utc': '(UTC Timezone)',
         'section.charts': 'Charts',
         'section.chartsDesc': 'Data visualization',
         'section.hourlyStats': 'Hourly Statistics',
@@ -948,7 +937,9 @@
         'hero.current': 'Current Listeners',
         'hero.todayAvg': 'Today Average',
         'hero.prediction': 'Predicted Streams',
-        'hero.peak': 'Today Peak',
+        'hero.todayPrediction': 'Today Predicted Streams',
+        'hero.peak': 'Peak',
+        'hero.todayPeak': 'Today Peak',
         'hero.vs1h': 'vs 1 hour ago',
         'hero.predictedStreams': 'Predicted Daily Streams',
         'hero.based': 'Based on average listener count',
@@ -1033,24 +1024,35 @@
         const stats = await res.json();
 
         if (!stats || stats.totalRecords === 0) {
-          document.getElementById('primary-metric').innerHTML = `<div class="loading">${t('na')}</div>`;
+          document.getElementById('key-metrics').innerHTML = `<div class="loading">${t('na')}</div>`;
           return;
         }
 
         const current = stats.latestCount;
 
-        // 计算今日平均
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayData = allData.filter(d => new Date(d.timestamp) >= todayStart);
+        // 使用UTC时间计算今日数据（UTC 0点到现在）
+        const nowUTC = new Date();
+        const todayStartUTC = new Date(Date.UTC(
+          nowUTC.getUTCFullYear(),
+          nowUTC.getUTCMonth(),
+          nowUTC.getUTCDate(),
+          0, 0, 0, 0
+        ));
+        const todayData = allData.filter(d => new Date(d.timestamp) >= todayStartUTC);
         const todayAvg = todayData.length > 0
-          ? Math.round(todayData.reduce((s, d) => s + d.listenerCount, 0) / todayData.length)
+          ? todayData.reduce((s, d) => s + d.listenerCount, 0) / todayData.length
           : current;
 
-        // 计算预测播放量（假设平均每个听众听3分钟）
-        const hoursElapsed = (now - todayStart) / (1000 * 60 * 60);
-        const remainingHours = 24 - hoursElapsed;
-        const predictedStreams = Math.round((todayAvg * 24 * 60) / 3);
+        // 今日峰值
+        const todayPeak = todayData.length > 0
+          ? Math.max(...todayData.map(d => d.listenerCount))
+          : current;
+
+        // 计算今日预测播放量（基于UTC今日已有数据预测全天）
+        const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
+        const predictedStreams = hoursElapsedUTC > 0
+          ? Math.round((todayAvg * 24 * 60) / 3)
+          : 0;
 
         // 计算对比1小时前
         const data1h = allData.slice(-720);
@@ -1058,18 +1060,18 @@
         const trend1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
         const isUp = parseFloat(trend1h) > 0;
 
-        // 超大当前听众卡片
-        document.getElementById('primary-metric').innerHTML = `
-          <div class="primary-label">${t('hero.current')}</div>
-          <div class="primary-value">${current.toLocaleString()}</div>
-          <div class="primary-trend">
-            <span class="primary-trend-icon">${isUp ? '↗' : '↘'}</span>
-            <span>${Math.abs(trend1h)}% ${t('hero.vs1h')}</span>
-          </div>
-        `;
-
-        // 关键指标
+        // 所有关键指标（包括当前听众）
         document.getElementById('key-metrics').innerHTML = `
+          <div class="key-metric-card primary">
+            <div class="key-metric-label">${t('hero.current')}</div>
+            <div class="key-metric-value">${current.toLocaleString()}</div>
+            <div class="key-metric-subtitle">${t('hourly.listeners')}</div>
+            <div class="key-metric-trend">
+              <span class="key-metric-trend-icon">${isUp ? '↗' : '↘'}</span>
+              <span>${Math.abs(trend1h)}% ${t('hero.vs1h')}</span>
+            </div>
+          </div>
+
           <div class="key-metric-card">
             <div class="key-metric-label">${t('hero.todayAvg')}</div>
             <div class="key-metric-value">${todayAvg.toFixed(1)}</div>
@@ -1077,14 +1079,14 @@
           </div>
 
           <div class="key-metric-card">
-            <div class="key-metric-label">${t('hero.prediction')}</div>
+            <div class="key-metric-label">${t('hero.todayPrediction')}</div>
             <div class="key-metric-value">${predictedStreams.toLocaleString()}</div>
             <div class="key-metric-subtitle">${t('hero.based')}</div>
           </div>
 
           <div class="key-metric-card">
-            <div class="key-metric-label">${t('hero.peak')}</div>
-            <div class="key-metric-value">${stats.maxCount.toLocaleString()}</div>
+            <div class="key-metric-label">${t('hero.todayPeak')}</div>
+            <div class="key-metric-value">${todayPeak.toLocaleString()}</div>
             <div class="key-metric-subtitle">${t('hourly.peak')}</div>
           </div>
         `;
@@ -1229,10 +1231,30 @@
           const isPeak = d.avgCount > overallAvg * 1.2;
           const isLow = d.avgCount < overallAvg * 0.8;
 
+          // 计算多国时区时间
+          const utcHour = d.hour;
+          const getLocalHour = (offset) => {
+            const local = (utcHour + offset + 24) % 24;
+            return local.toString().padStart(2, '0') + ':00';
+          };
+
+          const timezones = [
+            { name: 'US-ET', time: getLocalHour(-5) },   // 美国东部时间 (ET)
+            { name: 'US-PT', time: getLocalHour(-8) },   // 美国太平洋时间 (PT)
+            { name: 'UK', time: getLocalHour(0) },       // 英国 (GMT/UTC)
+            { name: 'DE', time: getLocalHour(1) },       // 德国 (CET)
+            { name: 'JP', time: getLocalHour(9) }        // 日本 (JST)
+          ];
+
           return `
             <div class="stat-card">
               <div class="stat-header">
-                <div class="stat-hour">${d.hour}:00</div>
+                <div>
+                  <div class="stat-hour">UTC ${d.hour}:00</div>
+                  <div class="stat-timezones">
+                    ${timezones.map(tz => `<span class="stat-timezone">${tz.name} ${tz.time}</span>`).join('')}
+                  </div>
+                </div>
                 <div class="stat-badge ${isLow ? 'low' : ''}">${isPeak ? t('hourly.peak') : isLow ? t('hourly.low') : ''}</div>
               </div>
               <div class="stat-content">
