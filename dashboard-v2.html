@@ -1816,16 +1816,16 @@
         // UTC时区对应的各国本地时间
         const getRegionalTimes = (utcHour) => {
           const regions = [];
-          // 美国东部 (UTC-5)
-          const usEastern = (utcHour - 5 + 24) % 24;
-          // 日本 (UTC+9)
-          const japan = (utcHour + 9) % 24;
+          // 美西 (UTC-8)
+          const usWest = (utcHour - 8 + 24) % 24;
+          // 美东 (UTC-5)
+          const usEast = (utcHour - 5 + 24) % 24;
           // 英国 (UTC+0)
           const uk = utcHour;
-          // 德国 (UTC+1)
-          const germany = (utcHour + 1) % 24;
-          // 巴西 (UTC-3)
-          const brazil = (utcHour - 3 + 24) % 24;
+          // 澳大利亚悉尼 (UTC+11)
+          const australia = (utcHour + 11) % 24;
+          // 日本 (UTC+9)
+          const japan = (utcHour + 9) % 24;
 
           const formatTime = (hour) => {
             if (hour >= 6 && hour < 12) return currentLang === 'zh' ? '上午' : 'Morning';
@@ -1834,11 +1834,11 @@
             return currentLang === 'zh' ? '深夜' : 'Night';
           };
 
-          regions.push({ flag: '🇺🇸', name: 'US', hour: usEastern, period: formatTime(usEastern) });
-          regions.push({ flag: '🇯🇵', name: 'JP', hour: japan, period: formatTime(japan) });
-          regions.push({ flag: '🇬🇧', name: 'UK', hour: uk, period: formatTime(uk) });
-          regions.push({ flag: '🇩🇪', name: 'DE', hour: germany, period: formatTime(germany) });
-          regions.push({ flag: '🇧🇷', name: 'BR', hour: brazil, period: formatTime(brazil) });
+          regions.push({ flag: '🇺🇸', name: currentLang === 'zh' ? '美西' : 'US-W', hour: usWest, period: formatTime(usWest) });
+          regions.push({ flag: '🇺🇸', name: currentLang === 'zh' ? '美东' : 'US-E', hour: usEast, period: formatTime(usEast) });
+          regions.push({ flag: '🇬🇧', name: currentLang === 'zh' ? '英国' : 'UK', hour: uk, period: formatTime(uk) });
+          regions.push({ flag: '🇦🇺', name: currentLang === 'zh' ? '澳洲' : 'AU', hour: australia, period: formatTime(australia) });
+          regions.push({ flag: '🇯🇵', name: currentLang === 'zh' ? '日本' : 'JP', hour: japan, period: formatTime(japan) });
 
           return regions;
         };
