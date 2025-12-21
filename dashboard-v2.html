@@ -351,7 +351,8 @@
       border-radius: 10px;
     }
 
-    .time-btn {
+    .time-btn,
+    .chart-type-btn {
       padding: 8px 16px;
       background: transparent;
       border: none;
@@ -363,11 +364,13 @@
       transition: all 0.2s ease;
     }
 
-    .time-btn:hover {
+    .time-btn:hover,
+    .chart-type-btn:hover {
       color: var(--text-primary);
     }
 
-    .time-btn.active {
+    .time-btn.active,
+    .chart-type-btn.active {
       background: var(--spotify-green);
       color: white;
     }
@@ -777,12 +780,18 @@
             <div class="chart-title" data-i18n="chart.timeline">听众趋势</div>
             <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化</div>
           </div>
-          <div class="time-selector">
-            <button class="time-btn active" data-range="720" data-i18n="time.1h">1小时</button>
-            <button class="time-btn" data-range="4320" data-i18n="time.6h">6小时</button>
-            <button class="time-btn" data-range="8640" data-i18n="time.12h">12小时</button>
-            <button class="time-btn" data-range="17280" data-i18n="time.24h">24小时</button>
-            <button class="time-btn" data-range="0" data-i18n="time.all">全部</button>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="time-selector">
+              <button class="time-btn active" data-range="720" data-i18n="time.1h">1小时</button>
+              <button class="time-btn" data-range="4320" data-i18n="time.6h">6小时</button>
+              <button class="time-btn" data-range="8640" data-i18n="time.12h">12小时</button>
+              <button class="time-btn" data-range="17280" data-i18n="time.24h">24小时</button>
+              <button class="time-btn" data-range="0" data-i18n="time.all">全部</button>
+            </div>
+            <div class="time-selector">
+              <button class="chart-type-btn active" data-type="raw" data-i18n="chart.raw">原始</button>
+              <button class="chart-type-btn" data-type="smooth" data-i18n="chart.smooth">平滑</button>
+            </div>
           </div>
         </div>
         <div class="chart-container">
@@ -866,6 +875,8 @@
         'section.actions': '快捷操作',
         'chart.timeline': '听众趋势',
         'chart.timelineDesc': '实时听众数量变化',
+        'chart.raw': '原始',
+        'chart.smooth': '平滑',
         'time.1h': '1小时',
         'time.6h': '6小时',
         'time.12h': '12小时',
@@ -921,6 +932,8 @@
         'section.actions': 'Quick Actions',
         'chart.timeline': 'Listener Trends',
         'chart.timelineDesc': 'Real-time listener count changes',
+        'chart.raw': 'Raw',
+        'chart.smooth': 'Smooth',
         'time.1h': '1 Hour',
         'time.6h': '6 Hours',
         'time.12h': '12 Hours',
@@ -992,6 +1005,7 @@
     // ========== 数据和图表 ==========
     let mainChart;
     let currentRange = 720;
+    let chartType = 'raw'; // 'raw' 或 'smooth'
     let allData = [];
 
     document.querySelectorAll('.time-btn').forEach(btn => {
@@ -999,6 +1013,15 @@
         document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentRange = parseInt(btn.dataset.range);
+        loadMainChart();
+      });
+    });
+
+    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        chartType = btn.dataset.type;
         loadMainChart();
       });
     });
@@ -1049,7 +1072,7 @@
         document.getElementById('key-metrics').innerHTML = `
           <div class="key-metric-card">
             <div class="key-metric-label">${t('hero.todayAvg')}</div>
-            <div class="key-metric-value">${todayAvg.toLocaleString()}</div>
+            <div class="key-metric-value">${todayAvg.toFixed(1)}</div>
             <div class="key-metric-subtitle">${todayData.length.toLocaleString()} ${t('hourly.listeners')}</div>
           </div>
 
@@ -1079,13 +1102,34 @@
 
         if (allData.length === 0) return;
 
-        const labels = allData.map(d => {
+        let processedData = allData;
+
+        // 平滑模式：数据聚合
+        if (chartType === 'smooth') {
+          const aggregateSize = currentRange === 720 ? 12 :      // 1h: 每分钟 (12个点)
+                                currentRange === 4320 ? 60 :     // 6h: 每5分钟 (60个点)
+                                currentRange === 8640 ? 120 :    // 12h: 每10分钟 (120个点)
+                                currentRange === 17280 ? 240 :   // 24h: 每20分钟 (240个点)
+                                60;                              // 默认: 每5分钟
+
+          processedData = [];
+          for (let i = 0; i < allData.length; i += aggregateSize) {
+            const chunk = allData.slice(i, i + aggregateSize);
+            const avgCount = chunk.reduce((sum, d) => sum + d.listenerCount, 0) / chunk.length;
+            processedData.push({
+              timestamp: chunk[Math.floor(chunk.length / 2)].timestamp,
+              listenerCount: avgCount
+            });
+          }
+        }
+
+        const labels = processedData.map(d => {
           const date = new Date(d.timestamp);
           return currentRange >= 8640 || currentRange === 0
             ? date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
             : date.toLocaleTimeString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {hour: '2-digit', minute: '2-digit'});
         });
-        const values = allData.map(d => d.listenerCount);
+        const values = processedData.map(d => d.listenerCount);
 
         const ctx = document.getElementById('main-chart').getContext('2d');
 
@@ -1106,7 +1150,7 @@
                   return gradient;
                 },
                 fill: true,
-                tension: 0.4,
+                tension: chartType === 'smooth' ? 0.4 : 0.1,
                 pointRadius: 0,
                 pointHoverRadius: 8,
                 pointHoverBackgroundColor: '#1DB954',
@@ -1137,7 +1181,12 @@
                 y: {
                   beginAtZero: false,
                   grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                  ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    callback: function(value) {
+                      return Number.isInteger(value) ? value : '';
+                    }
+                  }
                 },
                 x: {
                   grid: { display: false },
@@ -1149,6 +1198,7 @@
         } else {
           mainChart.data.labels = labels;
           mainChart.data.datasets[0].data = values;
+          mainChart.data.datasets[0].tension = chartType === 'smooth' ? 0.4 : 0.1;
           mainChart.update('none');
         }
 
@@ -1188,7 +1238,7 @@
               <div class="stat-content">
                 <div class="stat-item">
                   <div class="stat-label">${t('hourly.average')}</div>
-                  <div class="stat-value">${Math.round(d.avgCount).toLocaleString()}</div>
+                  <div class="stat-value">${d.avgCount.toFixed(1)}</div>
                 </div>
                 <div class="stat-item">
                   <div class="stat-label">${t('hourly.vsHistory')}</div>
@@ -1245,13 +1295,13 @@
           <div class="analysis-row">
             <div class="analysis-metric">${t('analysis.currentAvg')}</div>
             <div class="analysis-value">
-              <div class="analysis-number">${Math.round(currentAvg).toLocaleString()}</div>
+              <div class="analysis-number">${currentAvg.toFixed(1)}</div>
             </div>
           </div>
           <div class="analysis-row">
             <div class="analysis-metric">${t('analysis.yesterdayAvg')}</div>
             <div class="analysis-value">
-              <div class="analysis-number">${Math.round(yesterdayAvg).toLocaleString()}</div>
+              <div class="analysis-number">${yesterdayAvg.toFixed(1)}</div>
             </div>
           </div>
           <div class="analysis-row">
@@ -1272,13 +1322,13 @@
           <div class="analysis-row">
             <div class="analysis-metric">${t('analysis.currentAvg')}</div>
             <div class="analysis-value">
-              <div class="analysis-number">${Math.round(currentAvg).toLocaleString()}</div>
+              <div class="analysis-number">${currentAvg.toFixed(1)}</div>
             </div>
           </div>
           <div class="analysis-row">
             <div class="analysis-metric">${t('analysis.lastWeekAvg')}</div>
             <div class="analysis-value">
-              <div class="analysis-number">${Math.round(lastWeekAvg).toLocaleString()}</div>
+              <div class="analysis-number">${lastWeekAvg.toFixed(1)}</div>
             </div>
           </div>
           <div class="analysis-row">
@@ -1298,7 +1348,7 @@
           <div class="analysis-row">
             <div class="analysis-metric">${t('analysis.overallAvg')}</div>
             <div class="analysis-value">
-              <div class="analysis-number">${Math.round(overallAvg).toLocaleString()}</div>
+              <div class="analysis-number">${overallAvg.toFixed(1)}</div>
             </div>
           </div>
           <div class="analysis-row">
