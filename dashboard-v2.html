@@ -778,10 +778,10 @@
             <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化</div>
           </div>
           <div class="time-selector">
-            <button class="time-btn active" data-range="60" data-i18n="time.1h">1小时</button>
-            <button class="time-btn" data-range="360" data-i18n="time.6h">6小时</button>
-            <button class="time-btn" data-range="720" data-i18n="time.12h">12小时</button>
-            <button class="time-btn" data-range="1440" data-i18n="time.24h">24小时</button>
+            <button class="time-btn active" data-range="720" data-i18n="time.1h">1小时</button>
+            <button class="time-btn" data-range="4320" data-i18n="time.6h">6小时</button>
+            <button class="time-btn" data-range="8640" data-i18n="time.12h">12小时</button>
+            <button class="time-btn" data-range="17280" data-i18n="time.24h">24小时</button>
             <button class="time-btn" data-range="0" data-i18n="time.all">全部</button>
           </div>
         </div>
@@ -991,7 +991,7 @@
 
     // ========== 数据和图表 ==========
     let mainChart;
-    let currentRange = 60;
+    let currentRange = 720;
     let allData = [];
 
     document.querySelectorAll('.time-btn').forEach(btn => {
@@ -1081,7 +1081,7 @@
 
         const labels = allData.map(d => {
           const date = new Date(d.timestamp);
-          return currentRange > 720 || currentRange === 0
+          return currentRange >= 8640 || currentRange === 0
             ? date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {month:'short', day:'numeric', hour:'numeric', minute:'numeric'})
             : date.toLocaleTimeString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {hour: '2-digit', minute: '2-digit'});
         });
