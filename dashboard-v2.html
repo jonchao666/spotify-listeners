@@ -184,10 +184,225 @@
 
     /* ========== 首屏重点数据区 ========== */
     .hero-section {
-      margin-bottom: 64px;
+      margin-bottom: 48px;
     }
 
-    /* 关键指标网格 */
+    /* 核心指标行 */
+    .hero-main {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 当前听众大卡片 */
+    .current-card {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+    }
+
+    .current-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .current-value {
+      font-size: 56px;
+      font-weight: 800;
+      color: white;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .current-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+    }
+
+    /* 次要指标卡片 */
+    .secondary-card {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .secondary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--spotify-green), #1ed760);
+    }
+
+    .secondary-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .secondary-value {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .secondary-subtitle {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* 数据对比表格 */
+    .comparison-table {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .comparison-header {
+      display: grid;
+      grid-template-columns: 100px repeat(4, 1fr);
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-header-cell {
+      padding: 16px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+
+    .comparison-header-cell:first-child {
+      text-align: left;
+    }
+
+    .comparison-row {
+      display: grid;
+      grid-template-columns: 100px repeat(4, 1fr);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comparison-row:last-child {
+      border-bottom: none;
+    }
+
+    .comparison-cell {
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .comparison-cell:first-child {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .comparison-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .comparison-value.highlight {
+      color: var(--spotify-green);
+    }
+
+    /* 市场洞察区 */
+    .market-insights {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+
+    .market-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .market-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .market-card {
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .market-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .market-content {
+      flex: 1;
+    }
+
+    .market-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .market-detail {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .market-detail strong {
+      color: var(--spotify-green);
+    }
+
+    /* 关键指标网格 - 保留用于fallback */
     .key-metrics {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -853,15 +1068,15 @@
     <!-- 错误提示 -->
     <div id="error-alert" style="display: none;"></div>
 
-    <!-- ========== 第一部分：首屏重点数据 ========== -->
+    <!-- ========== 第一部分：数据概览 ========== -->
     <section class="hero-section">
       <div class="section-header">
-        <h2 class="section-title" data-i18n="section.overview">核心概览</h2>
-        <p class="section-subtitle" data-i18n="section.overviewDesc">最重要的实时数据一目了然 <span style="opacity: 0.6; font-size: 12px;" data-i18n="timezone.utc">(UTC时区)</span></p>
+        <h2 class="section-title" data-i18n="section.overview">数据概览</h2>
+        <p class="section-subtitle" data-i18n="section.overviewDesc">实时数据与历史对比 <span style="opacity: 0.6; font-size: 12px;" data-i18n="timezone.utc">(UTC时区)</span></p>
       </div>
 
-      <!-- 关键指标网格（包含当前听众） -->
-      <div class="key-metrics" id="key-metrics">
+      <!-- 核心指标 -->
+      <div id="hero-content">
         <div class="loading">
           <div class="spinner"></div>
           <p data-i18n="loading">加载中...</p>
@@ -902,25 +1117,6 @@
       </div>
     </section>
 
-    <!-- ========== 第三部分：详细统计 ========== -->
-    <section class="section">
-      <div class="section-header">
-        <h2 class="section-title" data-i18n="section.hourlyStats">时段统计</h2>
-        <p class="section-subtitle" data-i18n="section.hourlyStatsDesc">各小时段详细数据与历史对比</p>
-      </div>
-
-      <div class="stats-grid" id="hourly-stats"></div>
-    </section>
-
-    <!-- ========== 第四部分：数据分析 ========== -->
-    <section class="section">
-      <div class="section-header">
-        <h2 class="section-title" data-i18n="section.analysis">深度分析</h2>
-        <p class="section-subtitle" data-i18n="section.analysisDesc">与历史数据对比分析</p>
-      </div>
-
-      <div class="analysis-grid" id="analysis-grid"></div>
-    </section>
 
     <!-- ========== 快捷操作 ========== -->
     <section class="actions-section">
@@ -1136,46 +1332,6 @@
     let chartType = 'raw'; // 'raw' 或 'smooth'
     let allData = [];
     let processedData = []; // 图表使用的处理后数据
-    let hourlyStats = {}; // 存储每小时的历史统计
-
-    // 获取时区对应时间的函数
-    function getTimezoneTime(utcDate) {
-      const hour = utcDate.getUTCHours();
-      const getLocalHour = (offset) => {
-        const local = (hour + offset + 24) % 24;
-        return local.toString().padStart(2, '0') + ':00';
-      };
-      return {
-        'UTC': hour.toString().padStart(2, '0') + ':00',
-        'US-PT': getLocalHour(-8),
-        'MX': getLocalHour(-6),
-        'US-ET': getLocalHour(-5),
-        'BR': getLocalHour(-3),
-        'UK': getLocalHour(0),
-        'DE': getLocalHour(1),
-        'JP': getLocalHour(9),
-        'AU': getLocalHour(10)
-      };
-    }
-
-    // 加载hourly统计数据
-    async function loadHourlyStatsData() {
-      try {
-        const res = await fetch('/api/analytics/hourly');
-        const data = await res.json();
-        hourlyStats = {};
-        data.forEach(d => {
-          hourlyStats[d.hour] = {
-            avg: d.avgCount,
-            max: d.maxCount,
-            min: d.minCount,
-            samples: d.samples
-          };
-        });
-      } catch (e) {
-        console.error('Failed to load hourly stats data:', e);
-      }
-    }
 
     document.querySelectorAll('.time-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1195,83 +1351,185 @@
       });
     });
 
-    // 加载首屏重点数据（独立获取数据，不依赖图表时间范围）
+    // 加载数据概览（整合所有数据展示，独立获取数据）
     async function loadHeroSection() {
       try {
-        // 获取统计数据
-        const statsRes = await fetch('/api/stats');
+        // 获取统计数据和足够多的历史数据
+        const [statsRes, heroDataRes, hourlyRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/data?limit=250000'),
+          fetch('/api/analytics/hourly')
+        ]);
+
         const stats = await statsRes.json();
+        const heroData = await heroDataRes.json();
+        const hourlyData = await hourlyRes.json();
 
         if (!stats || stats.totalRecords === 0) {
-          document.getElementById('key-metrics').innerHTML = `<div class="loading">${t('na')}</div>`;
+          document.getElementById('hero-content').innerHTML = `<div class="loading">${t('na')}</div>`;
           return;
         }
 
         const current = stats.latestCount;
-
-        // 单独获取今日数据（获取足够多的数据点覆盖24小时）
-        const heroDataRes = await fetch('/api/data?limit=17280');
-        const heroData = await heroDataRes.json();
-
-        // 使用UTC时间计算今日数据（UTC 0点到现在）
         const nowUTC = new Date();
-        const todayStartUTC = new Date(Date.UTC(
-          nowUTC.getUTCFullYear(),
-          nowUTC.getUTCMonth(),
-          nowUTC.getUTCDate(),
-          0, 0, 0, 0
-        ));
+
+        // === 今日数据 (UTC) ===
+        const todayStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate(), 0, 0, 0, 0));
         const todayData = heroData.filter(d => new Date(d.timestamp) >= todayStartUTC);
-        const todayAvg = todayData.length > 0
-          ? todayData.reduce((s, d) => s + d.listenerCount, 0) / todayData.length
-          : current;
+        const todayValues = todayData.map(d => d.listenerCount);
+        const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
+        const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
 
-        // 今日峰值
-        const todayPeak = todayData.length > 0
-          ? Math.max(...todayData.map(d => d.listenerCount))
-          : current;
-
-        // 计算今日预测播放量（基于UTC今日已有数据预测全天）
+        // 今日预测播放量
         const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
-        const predictedStreams = hoursElapsedUTC > 0
-          ? Math.round((todayAvg * 24 * 60) / 3)
-          : 0;
+        const predictedStreams = hoursElapsedUTC > 0 ? Math.round((todayAvg * 24 * 60) / 3) : 0;
 
-        // 计算对比1小时前（使用heroData的最近720个点）
+        // 对比1小时前
         const data1h = heroData.slice(-720);
         const avg1h = data1h.length > 0 ? data1h.reduce((s, d) => s + d.listenerCount, 0) / data1h.length : 0;
         const trend1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
         const isUp = parseFloat(trend1h) > 0;
 
-        // 所有关键指标（包括当前听众）
-        document.getElementById('key-metrics').innerHTML = `
-          <div class="key-metric-card primary">
-            <div class="key-metric-label">${t('hero.current')}</div>
-            <div class="key-metric-value">${current.toLocaleString()}</div>
-            <div class="key-metric-subtitle">${t('hourly.listeners')}</div>
-            <div class="key-metric-trend">
-              <span class="key-metric-trend-icon">${isUp ? '↗' : '↘'}</span>
-              <span>${Math.abs(trend1h)}% ${t('hero.vs1h')}</span>
+        // === 本周数据 (UTC) ===
+        const weekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - nowUTC.getUTCDay()));
+        const thisWeekData = heroData.filter(d => new Date(d.timestamp) >= weekStartUTC);
+        const thisWeekValues = thisWeekData.map(d => d.listenerCount);
+        const thisWeekAvg = thisWeekValues.length > 0 ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length : null;
+        const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
+
+        // === 本月数据 (UTC) ===
+        const monthStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), 1));
+        const thisMonthData = heroData.filter(d => new Date(d.timestamp) >= monthStartUTC);
+        const thisMonthValues = thisMonthData.map(d => d.listenerCount);
+        const thisMonthAvg = thisMonthValues.length > 0 ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length : null;
+        const thisMonthPeak = thisMonthValues.length > 0 ? Math.max(...thisMonthValues) : null;
+
+        // === 全部数据 ===
+        const allValues = heroData.map(d => d.listenerCount);
+        const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+        const overallPeak = Math.max(...allValues);
+
+        // === 市场洞察 ===
+        let marketInsightsHtml = '';
+        if (hourlyData.length > 0) {
+          const overallHourlyAvg = hourlyData.reduce((s, d) => s + d.avgCount, 0) / hourlyData.length;
+          const sorted = [...hourlyData].sort((a, b) => b.avgCount - a.avgCount);
+          const peakHours = sorted.slice(0, 3);
+          const lowHours = sorted.slice(-3).reverse();
+
+          // 分析主力市场
+          const peakUTCHours = peakHours.map(h => h.hour);
+          let mainMarket = '';
+          let mainMarketIcon = '🌍';
+
+          // 根据UTC高峰时间推断主力市场
+          const avgPeakHour = peakUTCHours.reduce((a, b) => a + b, 0) / peakUTCHours.length;
+          if (avgPeakHour >= 0 && avgPeakHour <= 6) {
+            mainMarket = currentLang === 'zh' ? '北美晚间用户为主' : 'Primarily North American evening users';
+            mainMarketIcon = '🇺🇸';
+          } else if (avgPeakHour >= 10 && avgPeakHour <= 16) {
+            mainMarket = currentLang === 'zh' ? '亚太地区用户为主' : 'Primarily Asia-Pacific users';
+            mainMarketIcon = '🌏';
+          } else if (avgPeakHour >= 17 && avgPeakHour <= 23) {
+            mainMarket = currentLang === 'zh' ? '欧洲晚间用户为主' : 'Primarily European evening users';
+            mainMarketIcon = '🇪🇺';
+          } else {
+            mainMarket = currentLang === 'zh' ? '全球分布均匀' : 'Evenly distributed globally';
+          }
+
+          const peakVsAvg = ((peakHours[0].avgCount / overallHourlyAvg - 1) * 100).toFixed(0);
+          const lowVsAvg = ((1 - lowHours[0].avgCount / overallHourlyAvg) * 100).toFixed(0);
+
+          marketInsightsHtml = `
+            <div class="market-insights">
+              <div class="market-header">
+                <span style="font-size: 24px;">🎯</span>
+                <span class="market-title">${currentLang === 'zh' ? '市场洞察' : 'Market Insights'}</span>
+              </div>
+              <div class="market-grid">
+                <div class="market-card">
+                  <div class="market-icon">📈</div>
+                  <div class="market-content">
+                    <div class="market-label">${currentLang === 'zh' ? '高峰时段' : 'Peak Hours'}</div>
+                    <div class="market-detail">UTC ${peakHours.map(h => h.hour + ':00').join(', ')} · <strong>+${peakVsAvg}%</strong> ${currentLang === 'zh' ? '高于平均' : 'above avg'}</div>
+                  </div>
+                </div>
+                <div class="market-card">
+                  <div class="market-icon">📉</div>
+                  <div class="market-content">
+                    <div class="market-label">${currentLang === 'zh' ? '低谷时段' : 'Low Hours'}</div>
+                    <div class="market-detail">UTC ${lowHours.map(h => h.hour + ':00').join(', ')} · <strong>-${lowVsAvg}%</strong> ${currentLang === 'zh' ? '低于平均' : 'below avg'}</div>
+                  </div>
+                </div>
+                <div class="market-card">
+                  <div class="market-icon">${mainMarketIcon}</div>
+                  <div class="market-content">
+                    <div class="market-label">${currentLang === 'zh' ? '主力市场推测' : 'Primary Market'}</div>
+                    <div class="market-detail">${mainMarket}</div>
+                  </div>
+                </div>
+                <div class="market-card">
+                  <div class="market-icon">⏰</div>
+                  <div class="market-content">
+                    <div class="market-label">${currentLang === 'zh' ? '最佳发布时间' : 'Best Release Time'}</div>
+                    <div class="market-detail">UTC <strong>${peakHours[0].hour}:00</strong> (${currentLang === 'zh' ? '听众最活跃' : 'peak activity'})</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // 渲染完整的数据概览
+        document.getElementById('hero-content').innerHTML = `
+          <!-- 核心指标行 -->
+          <div class="hero-main">
+            <div class="current-card">
+              <div class="current-label">${t('hero.current')}</div>
+              <div class="current-value">${current.toLocaleString()}</div>
+              <div class="current-trend">
+                <span>${isUp ? '↗' : '↘'}</span>
+                <span>${Math.abs(trend1h)}% ${t('hero.vs1h')}</span>
+              </div>
+            </div>
+            <div class="secondary-card">
+              <div class="secondary-label">${t('hero.todayPeak')}</div>
+              <div class="secondary-value">${todayPeak.toLocaleString()}</div>
+              <div class="secondary-subtitle">${currentLang === 'zh' ? '今日最高' : 'Today\'s highest'}</div>
+            </div>
+            <div class="secondary-card">
+              <div class="secondary-label">${t('hero.todayPrediction')}</div>
+              <div class="secondary-value">${predictedStreams.toLocaleString()}</div>
+              <div class="secondary-subtitle">${t('hero.based')}</div>
             </div>
           </div>
 
-          <div class="key-metric-card">
-            <div class="key-metric-label">${t('hero.todayAvg')}</div>
-            <div class="key-metric-value">${todayAvg.toFixed(1)}</div>
-            <div class="key-metric-subtitle">${todayData.length.toLocaleString()} ${t('hourly.listeners')}</div>
+          <!-- 数据对比表格 -->
+          <div class="comparison-table">
+            <div class="comparison-header">
+              <div class="comparison-header-cell"></div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '今日' : 'Today'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '本周' : 'This Week'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '本月' : 'This Month'}</div>
+              <div class="comparison-header-cell">${currentLang === 'zh' ? '全部' : 'All Time'}</div>
+            </div>
+            <div class="comparison-row">
+              <div class="comparison-cell">${currentLang === 'zh' ? '平均' : 'Average'}</div>
+              <div class="comparison-cell"><span class="comparison-value highlight">${todayAvg.toFixed(1)}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${overallAvg.toFixed(1)}</span></div>
+            </div>
+            <div class="comparison-row">
+              <div class="comparison-cell">${currentLang === 'zh' ? '峰值' : 'Peak'}</div>
+              <div class="comparison-cell"><span class="comparison-value highlight">${todayPeak.toLocaleString()}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'}</span></div>
+              <div class="comparison-cell"><span class="comparison-value">${overallPeak.toLocaleString()}</span></div>
+            </div>
           </div>
 
-          <div class="key-metric-card">
-            <div class="key-metric-label">${t('hero.todayPrediction')}</div>
-            <div class="key-metric-value">${predictedStreams.toLocaleString()}</div>
-            <div class="key-metric-subtitle">${t('hero.based')}</div>
-          </div>
-
-          <div class="key-metric-card">
-            <div class="key-metric-label">${t('hero.todayPeak')}</div>
-            <div class="key-metric-value">${todayPeak.toLocaleString()}</div>
-            <div class="key-metric-subtitle">${t('hourly.peak')}</div>
-          </div>
+          ${marketInsightsHtml}
         `;
       } catch (e) {
         console.error('Failed to load hero section:', e);
@@ -1350,19 +1608,16 @@
               plugins: {
                 legend: { display: false },
                 tooltip: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                  titleColor: '#fff',
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleColor: '#1DB954',
                   bodyColor: '#fff',
-                  titleFont: { size: 14, weight: '700' },
-                  bodyFont: { size: 12, weight: '500' },
-                  padding: 16,
+                  titleFont: { size: 16, weight: '700' },
+                  bodyFont: { size: 13, weight: '500' },
+                  padding: 12,
                   displayColors: false,
                   callbacks: {
                     title: (items) => {
                       if (!items.length) return '';
-                      const idx = items[0].dataIndex;
-                      const dataPoint = processedData[idx];
-                      if (!dataPoint) return '';
                       return items[0].parsed.y.toLocaleString() + ' ' + t('listeners');
                     },
                     label: (ctx) => {
@@ -1371,25 +1626,15 @@
                       if (!dataPoint) return '';
 
                       const date = new Date(dataPoint.timestamp);
-                      const tz = getTimezoneTime(date);
-                      const hour = date.getUTCHours();
-                      const stats = hourlyStats[hour];
-
-                      const lines = [];
-                      lines.push('');
-                      lines.push('⏰ ' + (currentLang === 'zh' ? '各地时间' : 'Local Times') + ':');
-                      lines.push(`   UTC ${tz['UTC']} | US-ET ${tz['US-ET']} | US-PT ${tz['US-PT']}`);
-                      lines.push(`   UK ${tz['UK']} | DE ${tz['DE']} | JP ${tz['JP']} | AU ${tz['AU']}`);
-
-                      if (stats) {
-                        lines.push('');
-                        lines.push('📊 ' + (currentLang === 'zh' ? '该时段历史' : 'Hour History') + ':');
-                        lines.push(`   ${currentLang === 'zh' ? '平均' : 'Avg'}: ${stats.avg.toFixed(1)} | ${currentLang === 'zh' ? '峰值' : 'Peak'}: ${stats.max} | ${currentLang === 'zh' ? '最低' : 'Min'}: ${stats.min}`);
-                      }
-
-                      return lines;
-                    },
-                    afterBody: () => []
+                      const timeStr = date.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'UTC'
+                      });
+                      return timeStr + ' UTC';
+                    }
                   }
                 }
               },
@@ -1417,341 +1662,8 @@
           mainChart.data.datasets[0].tension = chartType === 'smooth' ? 0.4 : 0.1;
           mainChart.update('none');
         }
-
-        // loadHourlyStats和loadAnalysis依赖allData，需要在图表加载后调用
-        loadHourlyStats();
-        loadAnalysis();
       } catch (e) {
         console.error('Failed to load main chart:', e);
-      }
-    }
-
-    // 加载时段分析（结论性）
-    async function loadHourlyStats() {
-      try {
-        const res = await fetch('/api/analytics/hourly');
-        const hourlyData = await res.json();
-
-        if (hourlyData.length === 0) {
-          document.getElementById('hourly-stats').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
-          return;
-        }
-
-        // 计算整体平均
-        const overallAvg = hourlyData.reduce((s, d) => s + d.avgCount, 0) / hourlyData.length;
-
-        // 找出峰值和低谷时段（UTC）
-        const sorted = [...hourlyData].sort((a, b) => b.avgCount - a.avgCount);
-        const peakHours = sorted.slice(0, 3); // 前3个高峰
-        const lowHours = sorted.slice(-3).reverse(); // 后3个低谷
-
-        // 时区定义
-        const timezones = [
-          { code: 'US-PT', name: currentLang === 'zh' ? '美国太平洋' : 'US Pacific', offset: -8 },
-          { code: 'US-ET', name: currentLang === 'zh' ? '美国东部' : 'US Eastern', offset: -5 },
-          { code: 'MX', name: currentLang === 'zh' ? '墨西哥' : 'Mexico', offset: -6 },
-          { code: 'BR', name: currentLang === 'zh' ? '巴西' : 'Brazil', offset: -3 },
-          { code: 'UK', name: currentLang === 'zh' ? '英国' : 'UK', offset: 0 },
-          { code: 'DE', name: currentLang === 'zh' ? '德国' : 'Germany', offset: 1 },
-          { code: 'JP', name: currentLang === 'zh' ? '日本' : 'Japan', offset: 9 },
-          { code: 'AU', name: currentLang === 'zh' ? '澳大利亚' : 'Australia', offset: 10 }
-        ];
-
-        // 转换UTC小时到本地时间
-        const toLocalHour = (utcHour, offset) => (utcHour + offset + 24) % 24;
-
-        // 格式化时间范围
-        const formatTimeRange = (hours) => {
-          const start = Math.min(...hours);
-          const end = Math.max(...hours);
-          return `${start.toString().padStart(2, '0')}:00 - ${(end + 1).toString().padStart(2, '0')}:00`;
-        };
-
-        // 分析每个时区的本地高峰时段
-        const analyzeTimezone = (tz) => {
-          const localPeaks = peakHours.map(h => toLocalHour(h.hour, tz.offset));
-          const localLows = lowHours.map(h => toLocalHour(h.hour, tz.offset));
-
-          // 判断是否是晚间高峰（18-23点）
-          const isEveningPeak = localPeaks.some(h => h >= 18 && h <= 23);
-          // 判断是否是早晨低谷（4-8点）
-          const isMorningLow = localLows.some(h => h >= 4 && h <= 8);
-
-          return {
-            timezone: tz,
-            peakHours: localPeaks.sort((a, b) => a - b),
-            lowHours: localLows.sort((a, b) => a - b),
-            isEveningPeak,
-            isMorningLow
-          };
-        };
-
-        const analyses = timezones.map(analyzeTimezone);
-
-        // 生成结论HTML
-        const html = `
-          <div class="insights-grid">
-            <!-- 全球概览 -->
-            <div class="insight-card highlight">
-              <div class="insight-icon">🌍</div>
-              <div class="insight-content">
-                <div class="insight-title">${currentLang === 'zh' ? '全球高峰时段' : 'Global Peak Hours'}</div>
-                <div class="insight-detail">
-                  UTC ${peakHours.map(h => h.hour + ':00').join(', ')}
-                </div>
-                <div class="insight-value">${currentLang === 'zh' ? '平均' : 'Avg'}: ${peakHours[0].avgCount.toFixed(1)} ${t('listeners')}</div>
-              </div>
-            </div>
-
-            <div class="insight-card">
-              <div class="insight-icon">🌙</div>
-              <div class="insight-content">
-                <div class="insight-title">${currentLang === 'zh' ? '全球低谷时段' : 'Global Low Hours'}</div>
-                <div class="insight-detail">
-                  UTC ${lowHours.map(h => h.hour + ':00').join(', ')}
-                </div>
-                <div class="insight-value">${currentLang === 'zh' ? '平均' : 'Avg'}: ${lowHours[0].avgCount.toFixed(1)} ${t('listeners')}</div>
-              </div>
-            </div>
-
-            <!-- 各国高峰时段 -->
-            ${analyses.map(a => `
-              <div class="insight-card ${a.isEveningPeak ? 'peak' : ''}">
-                <div class="insight-icon">${getCountryFlag(a.timezone.code)}</div>
-                <div class="insight-content">
-                  <div class="insight-title">${a.timezone.name}</div>
-                  <div class="insight-detail">
-                    ${currentLang === 'zh' ? '高峰' : 'Peak'}: ${a.peakHours.map(h => h + ':00').join(', ')}
-                    ${a.isEveningPeak ? `<span class="insight-tag">${currentLang === 'zh' ? '晚间高峰' : 'Evening Peak'}</span>` : ''}
-                  </div>
-                  <div class="insight-subdetail">
-                    ${currentLang === 'zh' ? '低谷' : 'Low'}: ${a.lowHours.map(h => h + ':00').join(', ')}
-                    ${a.isMorningLow ? `<span class="insight-tag low">${currentLang === 'zh' ? '早间低谷' : 'Morning Low'}</span>` : ''}
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-
-          <!-- 数据洞察 -->
-          <div class="insight-summary">
-            <div class="summary-title">${currentLang === 'zh' ? '📊 数据洞察' : '📊 Insights'}</div>
-            <ul class="summary-list">
-              <li>${currentLang === 'zh'
-                ? `高峰时段听众数比平均值高 <strong>${((peakHours[0].avgCount / overallAvg - 1) * 100).toFixed(0)}%</strong>`
-                : `Peak hours have <strong>${((peakHours[0].avgCount / overallAvg - 1) * 100).toFixed(0)}%</strong> more listeners than average`
-              }</li>
-              <li>${currentLang === 'zh'
-                ? `低谷时段听众数比平均值低 <strong>${((1 - lowHours[0].avgCount / overallAvg) * 100).toFixed(0)}%</strong>`
-                : `Low hours have <strong>${((1 - lowHours[0].avgCount / overallAvg) * 100).toFixed(0)}%</strong> fewer listeners than average`
-              }</li>
-              <li>${currentLang === 'zh'
-                ? `最佳发布时间建议: <strong>UTC ${peakHours[0].hour}:00</strong> (各地晚间时段)`
-                : `Best release time: <strong>UTC ${peakHours[0].hour}:00</strong> (evening hours globally)`
-              }</li>
-            </ul>
-          </div>
-        `;
-
-        document.getElementById('hourly-stats').innerHTML = html;
-      } catch (e) {
-        console.error('Failed to load hourly stats:', e);
-      }
-    }
-
-    // 获取国家旗帜emoji
-    function getCountryFlag(code) {
-      const flags = {
-        'US-PT': '🇺🇸', 'US-ET': '🇺🇸', 'MX': '🇲🇽', 'BR': '🇧🇷',
-        'UK': '🇬🇧', 'DE': '🇩🇪', 'JP': '🇯🇵', 'AU': '🇦🇺'
-      };
-      return flags[code] || '🌍';
-    }
-
-    // 加载数据分析（独立获取数据，不依赖图表时间范围）
-    async function loadAnalysis() {
-      try {
-        // 获取足够多的数据用于分析（约2周数据）
-        const analysisRes = await fetch('/api/data?limit=250000');
-        const analysisData = await analysisRes.json();
-
-        if (analysisData.length < 720) {
-          document.getElementById('analysis-grid').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
-          return;
-        }
-
-        const values = analysisData.map(d => d.listenerCount);
-        const currentAvg = values.reduce((a, b) => a + b, 0) / values.length;
-
-        // 昨天数据（取前一天的同时段）
-        const oneDayPoints = 17280; // 24小时
-        const yesterdayData = analysisData.slice(-oneDayPoints * 2, -oneDayPoints);
-        const yesterdayAvg = yesterdayData.length > 0
-          ? yesterdayData.reduce((s, d) => s + d.listenerCount, 0) / yesterdayData.length
-          : null;
-
-        // 上周数据
-        const oneWeekPoints = oneDayPoints * 7;
-        const lastWeekData = analysisData.slice(-oneWeekPoints - oneDayPoints, -oneWeekPoints);
-        const lastWeekAvg = lastWeekData.length > 0
-          ? lastWeekData.reduce((s, d) => s + d.listenerCount, 0) / lastWeekData.length
-          : null;
-
-        // 本周数据（UTC时间）
-        const nowUTC = new Date();
-        const weekStartUTC = new Date(Date.UTC(
-          nowUTC.getUTCFullYear(),
-          nowUTC.getUTCMonth(),
-          nowUTC.getUTCDate() - nowUTC.getUTCDay()
-        ));
-        const thisWeekData = analysisData.filter(d => new Date(d.timestamp) >= weekStartUTC);
-        const thisWeekValues = thisWeekData.map(d => d.listenerCount);
-        const thisWeekAvg = thisWeekValues.length > 0
-          ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length
-          : null;
-        const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
-
-        // 本月数据（UTC时间）
-        const monthStartUTC = new Date(Date.UTC(
-          nowUTC.getUTCFullYear(),
-          nowUTC.getUTCMonth(),
-          1
-        ));
-        const thisMonthData = analysisData.filter(d => new Date(d.timestamp) >= monthStartUTC);
-        const thisMonthValues = thisMonthData.map(d => d.listenerCount);
-        const thisMonthAvg = thisMonthValues.length > 0
-          ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length
-          : null;
-        const thisMonthPeak = thisMonthValues.length > 0 ? Math.max(...thisMonthValues) : null;
-
-        // 整体统计（基于所有获取的数据）
-        const overallAvg = currentAvg;
-        const overallPeak = Math.max(...values);
-        const overallMin = Math.min(...values);
-
-        const vsYesterday = yesterdayAvg ? ((currentAvg - yesterdayAvg) / yesterdayAvg * 100).toFixed(1) : null;
-        const vsLastWeek = lastWeekAvg ? ((currentAvg - lastWeekAvg) / lastWeekAvg * 100).toFixed(1) : null;
-
-        const html = `
-        ${yesterdayAvg ? `
-        <div class="analysis-card">
-          <div class="analysis-title">${t('analysis.yesterday')}</div>
-          <div class="analysis-subtitle">${t('analysis.yesterdayDesc')}</div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.currentAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${currentAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.yesterdayAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${yesterdayAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.change')}</div>
-            <div class="analysis-value">
-              <div class="analysis-trend ${parseFloat(vsYesterday) >= 0 ? '' : 'negative'}">
-                ${parseFloat(vsYesterday) >= 0 ? '↗' : '↘'} ${Math.abs(vsYesterday)}%
-              </div>
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${lastWeekAvg ? `
-        <div class="analysis-card">
-          <div class="analysis-title">${t('analysis.lastWeek')}</div>
-          <div class="analysis-subtitle">${t('analysis.lastWeekDesc')}</div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.currentAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${currentAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.lastWeekAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${lastWeekAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.change')}</div>
-            <div class="analysis-value">
-              <div class="analysis-trend ${parseFloat(vsLastWeek) >= 0 ? '' : 'negative'}">
-                ${parseFloat(vsLastWeek) >= 0 ? '↗' : '↘'} ${Math.abs(vsLastWeek)}%
-              </div>
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${thisWeekAvg ? `
-        <div class="analysis-card">
-          <div class="analysis-title">${t('analysis.thisWeek')}</div>
-          <div class="analysis-subtitle">${t('analysis.thisWeekDesc')}</div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.weekAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${thisWeekAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.weekPeak')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${thisWeekPeak.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${thisMonthAvg ? `
-        <div class="analysis-card">
-          <div class="analysis-title">${t('analysis.thisMonth')}</div>
-          <div class="analysis-subtitle">${t('analysis.thisMonthDesc')}</div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.monthAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${thisMonthAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.monthPeak')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${thisMonthPeak.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-        ` : ''}
-
-        <div class="analysis-card">
-          <div class="analysis-title">${t('analysis.overall')}</div>
-          <div class="analysis-subtitle">${t('analysis.overallDesc')}</div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.overallAvg')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${overallAvg.toFixed(1)}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.overallPeak')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${overallPeak.toLocaleString()}</div>
-            </div>
-          </div>
-          <div class="analysis-row">
-            <div class="analysis-metric">${t('analysis.overallMin')}</div>
-            <div class="analysis-value">
-              <div class="analysis-number">${overallMin.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-        `;
-
-        document.getElementById('analysis-grid').innerHTML = html;
-      } catch (e) {
-        console.error('Failed to load analysis:', e);
       }
     }
 
@@ -1824,14 +1736,12 @@
 
     // 初始化
     async function init() {
-      await loadHourlyStatsData(); // 先加载历史统计
       await refresh();
     }
 
     // 自动刷新（每5秒）
     init();
     setInterval(refresh, 5000);
-    setInterval(loadHourlyStatsData, 60000); // 每分钟更新历史统计
   </script>
 
 </body>
