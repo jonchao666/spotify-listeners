@@ -79,20 +79,29 @@ async function sendWithResend(subject, htmlContent) {
     Resend = require('resend').Resend;
   } catch (e) {
     console.log('resend 未安装，运行 npm install resend 启用此功能');
-    return false;
+    throw new Error('resend 包未安装');
   }
 
-  const resend = new Resend(CONFIG.email.resendApiKey);
-  const { error } = await resend.emails.send({
+  console.log('Resend 配置:', {
     from: CONFIG.email.from,
     to: CONFIG.email.to,
+    apiKeyPrefix: CONFIG.email.resendApiKey ? CONFIG.email.resendApiKey.substring(0, 10) + '...' : 'none'
+  });
+
+  const resend = new Resend(CONFIG.email.resendApiKey);
+  const { data, error } = await resend.emails.send({
+    from: CONFIG.email.from,
+    to: [CONFIG.email.to], // Resend 需要数组格式
     subject: `[Spotify Tracker] ${subject}`,
     html: htmlContent
   });
 
   if (error) {
-    throw new Error(error.message);
+    console.error('Resend 错误:', error);
+    throw new Error(error.message || JSON.stringify(error));
   }
+
+  console.log('Resend 发送成功:', data);
   return true;
 }
 
