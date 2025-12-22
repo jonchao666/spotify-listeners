@@ -3170,9 +3170,6 @@
 
     async function testEmail() {
       try {
-        // 先保存当前配置再测试
-        await saveEmailSettings();
-
         const res = await fetch('/api/email/test', { method: 'POST' });
         const result = await res.json();
 
