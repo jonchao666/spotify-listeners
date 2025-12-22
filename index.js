@@ -15,13 +15,18 @@ const CONFIG = {
   // 邮件通知配置
   email: {
     enabled: process.env.EMAIL_ENABLED === 'true',
+    provider: process.env.EMAIL_PROVIDER || 'resend', // 'resend' 或 'smtp'
+    // Resend 配置
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    // SMTP 配置 (备用)
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true',
     user: process.env.EMAIL_USER || '',
     pass: process.env.EMAIL_PASS || '',
+    // 通用配置
     to: process.env.EMAIL_TO || '',
-    from: process.env.EMAIL_FROM || 'Spotify Tracker <noreply@spotify-tracker.local>'
+    from: process.env.EMAIL_FROM || 'Spotify Tracker <onboarding@resend.dev>'
   }
 };
 
@@ -47,9 +52,93 @@ let scrapeStatus = {
 let lastEmailSent = null;
 const EMAIL_COOLDOWN = 30 * 60 * 1000; // 30分钟冷却
 
+// 生成邮件 HTML 内容
+function generateEmailHtml(subject, message) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #1DB954;">🎵 Spotify Listener Tracker</h2>
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #e74c3c;">⚠️ ${subject}</h3>
+        <p style="color: #333;">${message}</p>
+      </div>
+      <div style="color: #888; font-size: 12px;">
+        <p>时间: ${new Date().toISOString()}</p>
+        <p>最后成功抓取: ${scrapeStatus.lastSuccess || '从未'}</p>
+        <p>连续错误次数: ${scrapeStatus.consecutiveErrors}</p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #888; font-size: 11px;">此邮件由 Spotify Listener Tracker 自动发送</p>
+    </div>
+  `;
+}
+
+// 使用 Resend 发送邮件
+async function sendWithResend(subject, htmlContent) {
+  let Resend;
+  try {
+    Resend = require('resend').Resend;
+  } catch (e) {
+    console.log('resend 未安装，运行 npm install resend 启用此功能');
+    return false;
+  }
+
+  const resend = new Resend(CONFIG.email.resendApiKey);
+  const { error } = await resend.emails.send({
+    from: CONFIG.email.from,
+    to: CONFIG.email.to,
+    subject: `[Spotify Tracker] ${subject}`,
+    html: htmlContent
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return true;
+}
+
+// 使用 SMTP 发送邮件
+async function sendWithSmtp(subject, htmlContent) {
+  let nodemailer;
+  try {
+    nodemailer = require('nodemailer');
+  } catch (e) {
+    console.log('nodemailer 未安装，运行 npm install nodemailer 启用此功能');
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: CONFIG.email.host,
+    port: CONFIG.email.port,
+    secure: CONFIG.email.secure,
+    auth: {
+      user: CONFIG.email.user,
+      pass: CONFIG.email.pass
+    }
+  });
+
+  await transporter.sendMail({
+    from: CONFIG.email.from,
+    to: CONFIG.email.to,
+    subject: `[Spotify Tracker] ${subject}`,
+    html: htmlContent
+  });
+  return true;
+}
+
 // 发送邮件通知
 async function sendEmailNotification(subject, message) {
-  if (!CONFIG.email.enabled || !CONFIG.email.user || !CONFIG.email.to) {
+  if (!CONFIG.email.enabled || !CONFIG.email.to) {
+    return false;
+  }
+
+  // 验证必要配置
+  const isResend = CONFIG.email.provider === 'resend';
+  if (isResend && !CONFIG.email.resendApiKey) {
+    console.log('Resend API Key 未配置');
+    return false;
+  }
+  if (!isResend && !CONFIG.email.user) {
+    console.log('SMTP 用户未配置');
     return false;
   }
 
@@ -60,50 +149,16 @@ async function sendEmailNotification(subject, message) {
   }
 
   try {
-    // 动态加载 nodemailer（可选依赖）
-    let nodemailer;
-    try {
-      nodemailer = require('nodemailer');
-    } catch (e) {
-      console.log('nodemailer 未安装，跳过邮件通知。运行 npm install nodemailer 启用此功能');
-      return false;
+    const htmlContent = generateEmailHtml(subject, message);
+
+    if (isResend) {
+      await sendWithResend(subject, htmlContent);
+    } else {
+      await sendWithSmtp(subject, htmlContent);
     }
 
-    const transporter = nodemailer.createTransport({
-      host: CONFIG.email.host,
-      port: CONFIG.email.port,
-      secure: CONFIG.email.secure,
-      auth: {
-        user: CONFIG.email.user,
-        pass: CONFIG.email.pass
-      }
-    });
-
-    const mailOptions = {
-      from: CONFIG.email.from,
-      to: CONFIG.email.to,
-      subject: `[Spotify Tracker] ${subject}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1DB954;">🎵 Spotify Listener Tracker</h2>
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #e74c3c;">⚠️ ${subject}</h3>
-            <p style="color: #333;">${message}</p>
-          </div>
-          <div style="color: #888; font-size: 12px;">
-            <p>时间: ${new Date().toISOString()}</p>
-            <p>最后成功抓取: ${scrapeStatus.lastSuccess || '从未'}</p>
-            <p>连续错误次数: ${scrapeStatus.consecutiveErrors}</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-          <p style="color: #888; font-size: 11px;">此邮件由 Spotify Listener Tracker 自动发送</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
     lastEmailSent = Date.now();
-    console.log('邮件通知已发送:', subject);
+    console.log(`邮件通知已发送 (${CONFIG.email.provider}):`, subject);
     return true;
   } catch (e) {
     console.error('发送邮件失败:', e.message);
@@ -787,17 +842,22 @@ function startServer() {
     }
   });
 
-  // 获取邮件配置状态 (不返回密码)
+  // 获取邮件配置状态 (不返回密钥/密码)
   app.get('/api/email/config', (req, res) => {
     res.json({
       enabled: CONFIG.email.enabled,
+      provider: CONFIG.email.provider,
+      // Resend
+      hasResendApiKey: !!CONFIG.email.resendApiKey,
+      // SMTP
       host: CONFIG.email.host,
       port: CONFIG.email.port,
       secure: CONFIG.email.secure,
       user: CONFIG.email.user ? CONFIG.email.user.replace(/(.{2}).*(@.*)/, '$1***$2') : '',
+      hasPassword: !!CONFIG.email.pass,
+      // 通用
       to: CONFIG.email.to ? CONFIG.email.to.replace(/(.{2}).*(@.*)/, '$1***$2') : '',
       from: CONFIG.email.from,
-      hasPassword: !!CONFIG.email.pass,
       lastEmailSent: lastEmailSent ? new Date(lastEmailSent).toISOString() : null,
       cooldownMinutes: EMAIL_COOLDOWN / 60000
     });
@@ -806,10 +866,12 @@ function startServer() {
   // 更新邮件配置
   app.post('/api/email/config', (req, res) => {
     try {
-      const { enabled, host, port, secure, user, pass, to, from } = req.body;
+      const { enabled, provider, resendApiKey, host, port, secure, user, pass, to, from } = req.body;
 
       // 更新内存中的配置
       if (typeof enabled === 'boolean') CONFIG.email.enabled = enabled;
+      if (provider) CONFIG.email.provider = provider;
+      if (resendApiKey) CONFIG.email.resendApiKey = resendApiKey;
       if (host) CONFIG.email.host = host;
       if (port) CONFIG.email.port = parseInt(port);
       if (typeof secure === 'boolean') CONFIG.email.secure = secure;
@@ -823,9 +885,7 @@ function startServer() {
         message: '邮件配置已更新 (仅当前会话有效，重启后需要修改 .env 文件)',
         config: {
           enabled: CONFIG.email.enabled,
-          host: CONFIG.email.host,
-          port: CONFIG.email.port,
-          user: CONFIG.email.user ? CONFIG.email.user.replace(/(.{2}).*(@.*)/, '$1***$2') : ''
+          provider: CONFIG.email.provider
         }
       });
     } catch (e) {

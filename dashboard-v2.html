@@ -596,6 +596,39 @@
       border-top: 1px solid var(--border-color);
     }
 
+    /* 邮件服务提供商选择 */
+    .provider-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .provider-tab {
+      flex: 1;
+      padding: 10px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .provider-tab:hover {
+      border-color: var(--text-tertiary);
+    }
+
+    .provider-tab.active {
+      background: rgba(29, 185, 84, 0.15);
+      border-color: var(--spotify-green);
+      color: var(--spotify-green);
+    }
+
+    .provider-config {
+      margin-top: 16px;
+    }
+
     .btn {
       padding: 12px 24px;
       border-radius: 10px;
@@ -1736,41 +1769,78 @@
         </label>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">SMTP 服务器</label>
-          <input type="text" id="email-host" class="form-input" placeholder="smtp.gmail.com">
-        </div>
-        <div class="form-group">
-          <label class="form-label">端口</label>
-          <input type="number" id="email-port" class="form-input" placeholder="587">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">发件邮箱</label>
-        <input type="email" id="email-user" class="form-input" placeholder="your-email@gmail.com">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">邮箱密码 / 应用专用密码</label>
-        <input type="password" id="email-pass" class="form-input" placeholder="留空则不更改">
-      </div>
-
       <div class="form-group">
         <label class="form-label">接收通知邮箱</label>
-        <input type="email" id="email-to" class="form-input" placeholder="notifications@example.com">
+        <input type="email" id="email-to" class="form-input" placeholder="your-email@example.com">
       </div>
 
+      <!-- 服务提供商选择 -->
       <div class="form-group">
-        <label class="form-checkbox">
-          <input type="checkbox" id="email-secure">
-          <span>使用 SSL/TLS (端口465时启用)</span>
-        </label>
+        <label class="form-label">邮件服务</label>
+        <div class="provider-tabs">
+          <button type="button" class="provider-tab active" data-provider="resend" onclick="switchProvider('resend')">
+            Resend (推荐)
+          </button>
+          <button type="button" class="provider-tab" data-provider="smtp" onclick="switchProvider('smtp')">
+            SMTP
+          </button>
+        </div>
       </div>
 
-      <div style="background: var(--bg-tertiary); border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
-        <strong>提示：</strong>Gmail 用户需要使用 <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--spotify-green);">应用专用密码</a>。修改仅在当前会话有效，永久修改请编辑 .env 文件。
+      <!-- Resend 配置 -->
+      <div id="resend-config" class="provider-config">
+        <div class="form-group">
+          <label class="form-label">Resend API Key</label>
+          <input type="password" id="resend-api-key" class="form-input" placeholder="re_xxxxxxxx (留空则不更改)">
+        </div>
+        <div style="background: var(--bg-tertiary); border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+          <strong>获取 API Key：</strong>
+          <ol style="margin: 8px 0 0 16px; padding: 0;">
+            <li>访问 <a href="https://resend.com" target="_blank" style="color: var(--spotify-green);">resend.com</a> 注册账号</li>
+            <li>进入 API Keys 页面创建新 Key</li>
+            <li>复制 Key 粘贴到上方</li>
+          </ol>
+          <p style="margin-top: 8px; color: var(--text-tertiary);">免费额度：3000封/月，安全可靠</p>
+        </div>
+      </div>
+
+      <!-- SMTP 配置 -->
+      <div id="smtp-config" class="provider-config" style="display: none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">SMTP 服务器</label>
+            <input type="text" id="email-host" class="form-input" placeholder="smtp.gmail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">端口</label>
+            <input type="number" id="email-port" class="form-input" placeholder="587">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">发件邮箱</label>
+          <input type="email" id="email-user" class="form-input" placeholder="your-email@gmail.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">邮箱密码 / 应用专用密码</label>
+          <input type="password" id="email-pass" class="form-input" placeholder="留空则不更改">
+        </div>
+
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" id="email-secure">
+            <span>使用 SSL/TLS (端口465时启用)</span>
+          </label>
+        </div>
+
+        <div style="background: var(--bg-tertiary); border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+          <strong>提示：</strong>Gmail 需使用 <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--spotify-green);">应用专用密码</a>，安全性较低。推荐使用 Resend。
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px;">
+        修改仅在当前会话有效，永久修改请编辑 .env 文件
       </div>
 
       <div class="modal-footer">
@@ -2988,6 +3058,8 @@
     }
 
     // ========== 邮件设置 ==========
+    let currentEmailProvider = 'resend';
+
     async function openEmailSettings() {
       document.getElementById('email-modal').style.display = 'flex';
       await loadEmailConfig();
@@ -2997,25 +3069,50 @@
       document.getElementById('email-modal').style.display = 'none';
     }
 
+    function switchProvider(provider) {
+      currentEmailProvider = provider;
+
+      // 更新标签样式
+      document.querySelectorAll('.provider-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.provider === provider);
+      });
+
+      // 切换配置面板
+      document.getElementById('resend-config').style.display = provider === 'resend' ? 'block' : 'none';
+      document.getElementById('smtp-config').style.display = provider === 'smtp' ? 'block' : 'none';
+    }
+
     async function loadEmailConfig() {
       try {
         const res = await fetch('/api/email/config');
         const config = await res.json();
 
         document.getElementById('email-enabled').checked = config.enabled;
+        document.getElementById('email-to').placeholder = config.to || 'your-email@example.com';
+
+        // SMTP 配置
         document.getElementById('email-host').value = config.host || '';
         document.getElementById('email-port').value = config.port || 587;
         document.getElementById('email-secure').checked = config.secure;
         document.getElementById('email-user').placeholder = config.user || 'your-email@gmail.com';
-        document.getElementById('email-to').placeholder = config.to || 'notifications@example.com';
 
+        // 设置当前提供商
+        const provider = config.provider || 'resend';
+        switchProvider(provider);
+
+        // 更新状态显示
         const statusEl = document.getElementById('email-status');
-        if (config.enabled && config.hasPassword) {
+        const isResend = provider === 'resend';
+        const hasCredentials = isResend ? config.hasResendApiKey : config.hasPassword;
+
+        if (config.enabled && hasCredentials) {
           statusEl.className = 'email-status enabled';
-          statusEl.innerHTML = `✅ ${currentLang === 'zh' ? '邮件通知已启用' : 'Email notifications enabled'}${config.lastEmailSent ? ` · ${currentLang === 'zh' ? '最后发送' : 'Last sent'}: ${new Date(config.lastEmailSent).toLocaleString()}` : ''}`;
-        } else if (config.enabled && !config.hasPassword) {
+          const providerName = isResend ? 'Resend' : 'SMTP';
+          statusEl.innerHTML = `✅ ${currentLang === 'zh' ? `已启用 (${providerName})` : `Enabled (${providerName})`}${config.lastEmailSent ? ` · ${currentLang === 'zh' ? '最后发送' : 'Last sent'}: ${new Date(config.lastEmailSent).toLocaleString()}` : ''}`;
+        } else if (config.enabled && !hasCredentials) {
           statusEl.className = 'email-status disabled';
-          statusEl.innerHTML = `⚠️ ${currentLang === 'zh' ? '已启用但未配置密码' : 'Enabled but no password configured'}`;
+          const msg = isResend ? 'API Key' : '密码';
+          statusEl.innerHTML = `⚠️ ${currentLang === 'zh' ? `已启用但未配置${msg}` : `Enabled but no ${isResend ? 'API key' : 'password'}`}`;
         } else {
           statusEl.className = 'email-status disabled';
           statusEl.innerHTML = `❌ ${currentLang === 'zh' ? '邮件通知未启用' : 'Email notifications disabled'}`;
@@ -3030,16 +3127,24 @@
       try {
         const config = {
           enabled: document.getElementById('email-enabled').checked,
-          host: document.getElementById('email-host').value || undefined,
-          port: document.getElementById('email-port').value || undefined,
-          secure: document.getElementById('email-secure').checked,
-          user: document.getElementById('email-user').value || undefined,
+          provider: currentEmailProvider,
           to: document.getElementById('email-to').value || undefined
         };
 
-        const pass = document.getElementById('email-pass').value;
-        if (pass) {
-          config.pass = pass;
+        if (currentEmailProvider === 'resend') {
+          const apiKey = document.getElementById('resend-api-key').value;
+          if (apiKey) {
+            config.resendApiKey = apiKey;
+          }
+        } else {
+          config.host = document.getElementById('email-host').value || undefined;
+          config.port = document.getElementById('email-port').value || undefined;
+          config.secure = document.getElementById('email-secure').checked;
+          config.user = document.getElementById('email-user').value || undefined;
+          const pass = document.getElementById('email-pass').value;
+          if (pass) {
+            config.pass = pass;
+          }
         }
 
         const res = await fetch('/api/email/config', {
@@ -3052,6 +3157,7 @@
 
         if (result.success) {
           alert(t('email.saveSuccess') + '\n\n' + result.message);
+          document.getElementById('resend-api-key').value = '';
           document.getElementById('email-pass').value = '';
           await loadEmailConfig();
         } else {
@@ -3064,6 +3170,9 @@
 
     async function testEmail() {
       try {
+        // 先保存当前配置再测试
+        await saveEmailSettings();
+
         const res = await fetch('/api/email/test', { method: 'POST' });
         const result = await res.json();
 
