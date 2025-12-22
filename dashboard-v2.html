@@ -680,6 +680,159 @@
       font-size: 13px;
     }
 
+    /* Facebook风格日期选择器 */
+    .date-picker-container {
+      position: relative;
+    }
+
+    .date-picker-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 180px;
+    }
+
+    .date-picker-trigger:hover {
+      border-color: var(--spotify-green);
+    }
+
+    .date-picker-trigger svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-secondary);
+    }
+
+    .date-picker-trigger .arrow {
+      margin-left: auto;
+      transition: transform 0.2s;
+    }
+
+    .date-picker-trigger.open .arrow {
+      transform: rotate(180deg);
+    }
+
+    .date-picker-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 280px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      display: none;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .date-picker-dropdown.open {
+      display: block;
+    }
+
+    .date-picker-section {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .date-picker-section:last-child {
+      border-bottom: none;
+    }
+
+    .date-picker-section-title {
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .date-picker-option {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .date-picker-option:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .date-picker-option.active {
+      background: rgba(29, 185, 84, 0.1);
+      color: var(--spotify-green);
+    }
+
+    .date-picker-option .check {
+      margin-left: auto;
+      opacity: 0;
+    }
+
+    .date-picker-option.active .check {
+      opacity: 1;
+    }
+
+    /* 自定义日期输入 */
+    .custom-date-inputs {
+      padding: 12px 16px;
+      display: none;
+    }
+
+    .custom-date-inputs.show {
+      display: block;
+    }
+
+    .custom-date-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .custom-date-inputs input[type="date"] {
+      flex: 1;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .custom-date-inputs input[type="date"]:focus {
+      outline: none;
+      border-color: var(--spotify-green);
+    }
+
+    .custom-date-apply {
+      width: 100%;
+      padding: 10px;
+      background: var(--spotify-green);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .custom-date-apply:hover {
+      background: #1ed760;
+    }
+
     /* 关键指标网格 - 保留用于fallback */
     .key-metrics {
       display: grid;
@@ -1376,12 +1529,84 @@
             <div class="chart-subtitle" id="chart-subtitle" data-i18n="chart.timelineDesc">实时听众数量变化 (UTC)</div>
           </div>
           <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="time-selector">
-              <button class="time-btn active" data-range="720" data-i18n="time.1h">1小时</button>
-              <button class="time-btn" data-range="4320" data-i18n="time.6h">6小时</button>
-              <button class="time-btn" data-range="8640" data-i18n="time.12h">12小时</button>
-              <button class="time-btn" data-range="17280" data-i18n="time.24h">24小时</button>
-              <button class="time-btn" data-range="0" data-i18n="time.all">全部</button>
+            <!-- Facebook风格日期选择器 -->
+            <div class="date-picker-container">
+              <div class="date-picker-trigger" id="date-picker-trigger" onclick="toggleDatePicker()">
+                <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+                <span id="date-picker-label">今天</span>
+                <svg class="arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+              <div class="date-picker-dropdown" id="date-picker-dropdown">
+                <!-- 最近使用 -->
+                <div class="date-picker-section" id="recent-used-section" style="display: none;">
+                  <div class="date-picker-section-title" data-i18n="date.recentlyUsed">最近使用</div>
+                  <div id="recent-used-options"></div>
+                </div>
+                <!-- 预设范围 -->
+                <div class="date-picker-section">
+                  <div class="date-picker-section-title" data-i18n="date.presets">日期范围</div>
+                  <div class="date-picker-option" data-range="today" onclick="selectDateRange('today')">
+                    <span data-i18n="date.today">今天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="yesterday" onclick="selectDateRange('yesterday')">
+                    <span data-i18n="date.yesterday">昨天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="todayYesterday" onclick="selectDateRange('todayYesterday')">
+                    <span data-i18n="date.todayYesterday">今天和昨天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="last7days" onclick="selectDateRange('last7days')">
+                    <span data-i18n="date.last7days">过去 7 天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="last14days" onclick="selectDateRange('last14days')">
+                    <span data-i18n="date.last14days">过去 14 天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="last28days" onclick="selectDateRange('last28days')">
+                    <span data-i18n="date.last28days">过去 28 天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="last30days" onclick="selectDateRange('last30days')">
+                    <span data-i18n="date.last30days">过去 30 天</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="thisWeek" onclick="selectDateRange('thisWeek')">
+                    <span data-i18n="date.thisWeek">本周</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="lastWeek" onclick="selectDateRange('lastWeek')">
+                    <span data-i18n="date.lastWeek">上周</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="thisMonth" onclick="selectDateRange('thisMonth')">
+                    <span data-i18n="date.thisMonth">本月</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="lastMonth" onclick="selectDateRange('lastMonth')">
+                    <span data-i18n="date.lastMonth">上月</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="maximum" onclick="selectDateRange('maximum')">
+                    <span data-i18n="date.maximum">全部数据</span>
+                    <span class="check">✓</span>
+                  </div>
+                  <div class="date-picker-option" data-range="custom" onclick="toggleCustomDate()">
+                    <span data-i18n="date.custom">自定义</span>
+                    <span class="check">✓</span>
+                  </div>
+                </div>
+                <!-- 自定义日期输入 -->
+                <div class="custom-date-inputs" id="custom-date-inputs">
+                  <div class="custom-date-row">
+                    <input type="date" id="custom-start-date">
+                    <input type="date" id="custom-end-date">
+                  </div>
+                  <button class="custom-date-apply" onclick="applyCustomDate()" data-i18n="date.apply">应用</button>
+                </div>
+              </div>
             </div>
             <div class="time-selector">
               <button class="chart-type-btn active" data-type="raw" data-i18n="chart.raw">原始</button>
@@ -1419,14 +1644,6 @@
         <h2 class="section-title" data-i18n="section.actions">快捷操作</h2>
       </div>
       <div class="actions-grid">
-        <a href="/api/stats" target="_blank" class="action-btn">
-          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-          <span data-i18n="action.stats">统计 API</span>
-        </a>
-        <a href="/api/data?limit=100" target="_blank" class="action-btn">
-          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
-          <span data-i18n="action.recent">最近数据</span>
-        </a>
         <a href="/api/download/csv" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           <span data-i18n="action.export">导出 CSV</span>
@@ -1561,6 +1778,22 @@
         'email.testSuccess': '测试邮件已发送',
         'email.testFail': '发送失败',
         'email.saveSuccess': '设置已保存',
+        'date.recentlyUsed': '最近使用',
+        'date.presets': '日期范围',
+        'date.today': '今天',
+        'date.yesterday': '昨天',
+        'date.todayYesterday': '今天和昨天',
+        'date.last7days': '过去 7 天',
+        'date.last14days': '过去 14 天',
+        'date.last28days': '过去 28 天',
+        'date.last30days': '过去 30 天',
+        'date.thisWeek': '本周',
+        'date.lastWeek': '上周',
+        'date.thisMonth': '本月',
+        'date.lastMonth': '上月',
+        'date.maximum': '全部数据',
+        'date.custom': '自定义',
+        'date.apply': '应用',
         'hero.current': '当前听众',
         'hero.todayAvg': '今日平均',
         'hero.prediction': '预测播放量',
@@ -1646,6 +1879,22 @@
         'email.testSuccess': 'Test email sent',
         'email.testFail': 'Send failed',
         'email.saveSuccess': 'Settings saved',
+        'date.recentlyUsed': 'Recently Used',
+        'date.presets': 'Date Range Presets',
+        'date.today': 'Today',
+        'date.yesterday': 'Yesterday',
+        'date.todayYesterday': 'Today and Yesterday',
+        'date.last7days': 'Last 7 days',
+        'date.last14days': 'Last 14 days',
+        'date.last28days': 'Last 28 days',
+        'date.last30days': 'Last 30 days',
+        'date.thisWeek': 'This week',
+        'date.lastWeek': 'Last week',
+        'date.thisMonth': 'This month',
+        'date.lastMonth': 'Last month',
+        'date.maximum': 'Maximum',
+        'date.custom': 'Custom',
+        'date.apply': 'Apply',
         'hero.current': 'Current Listeners',
         'hero.todayAvg': 'Today Average',
         'hero.prediction': 'Predicted Streams',
@@ -1721,19 +1970,223 @@
 
     // ========== 数据和图表 ==========
     let mainChart;
-    let currentRange = 720;
+    let currentDateRange = 'today'; // 当前选中的日期范围
+    let customStartDate = null;
+    let customEndDate = null;
     let chartType = 'raw'; // 'raw' 或 'smooth'
     let allData = [];
     let processedData = []; // 图表使用的处理后数据
+    let recentlyUsedRanges = []; // 最近使用的范围
 
-    document.querySelectorAll('.time-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentRange = parseInt(btn.dataset.range);
-        loadMainChart();
-      });
+    // 初始化最近使用的范围
+    try {
+      recentlyUsedRanges = JSON.parse(localStorage.getItem('recentDateRanges') || '[]');
+    } catch (e) {
+      recentlyUsedRanges = [];
+    }
+
+    // 日期范围配置
+    const dateRangeConfig = {
+      today: { labelKey: 'date.today', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+        return { start, end: now };
+      }},
+      yesterday: { labelKey: 'date.yesterday', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0));
+        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+        return { start, end };
+      }},
+      todayYesterday: { labelKey: 'date.todayYesterday', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0));
+        return { start, end: now };
+      }},
+      last7days: { labelKey: 'date.last7days', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6, 0, 0, 0));
+        return { start, end: now };
+      }},
+      last14days: { labelKey: 'date.last14days', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 13, 0, 0, 0));
+        return { start, end: now };
+      }},
+      last28days: { labelKey: 'date.last28days', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 27, 0, 0, 0));
+        return { start, end: now };
+      }},
+      last30days: { labelKey: 'date.last30days', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 29, 0, 0, 0));
+        return { start, end: now };
+      }},
+      thisWeek: { labelKey: 'date.thisWeek', getDates: () => {
+        const now = new Date();
+        const dayOfWeek = now.getUTCDay();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek, 0, 0, 0));
+        return { start, end: now };
+      }},
+      lastWeek: { labelKey: 'date.lastWeek', getDates: () => {
+        const now = new Date();
+        const dayOfWeek = now.getUTCDay();
+        const thisWeekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek, 0, 0, 0));
+        const start = new Date(thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const end = new Date(thisWeekStart.getTime());
+        return { start, end };
+      }},
+      thisMonth: { labelKey: 'date.thisMonth', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        return { start, end: now };
+      }},
+      lastMonth: { labelKey: 'date.lastMonth', getDates: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0));
+        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        return { start, end };
+      }},
+      maximum: { labelKey: 'date.maximum', getDates: () => {
+        return { start: null, end: null }; // null 表示获取全部数据
+      }}
+    };
+
+    // 切换日期选择器下拉框
+    function toggleDatePicker() {
+      const dropdown = document.getElementById('date-picker-dropdown');
+      const trigger = document.getElementById('date-picker-trigger');
+      dropdown.classList.toggle('open');
+      trigger.classList.toggle('open');
+      updateRecentlyUsedSection();
+    }
+
+    // 点击外部关闭下拉框
+    document.addEventListener('click', (e) => {
+      const container = document.querySelector('.date-picker-container');
+      if (container && !container.contains(e.target)) {
+        document.getElementById('date-picker-dropdown').classList.remove('open');
+        document.getElementById('date-picker-trigger').classList.remove('open');
+      }
     });
+
+    // 更新最近使用区域
+    function updateRecentlyUsedSection() {
+      const section = document.getElementById('recent-used-section');
+      const optionsContainer = document.getElementById('recent-used-options');
+
+      if (recentlyUsedRanges.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      optionsContainer.innerHTML = recentlyUsedRanges.slice(0, 3).map(range => {
+        const config = dateRangeConfig[range];
+        if (!config) return '';
+        const isActive = currentDateRange === range ? 'active' : '';
+        return `
+          <div class="date-picker-option ${isActive}" data-range="${range}" onclick="selectDateRange('${range}')">
+            <span>${t(config.labelKey)}</span>
+            <span class="check">✓</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 选择日期范围
+    function selectDateRange(range) {
+      currentDateRange = range;
+
+      // 更新选中状态
+      document.querySelectorAll('.date-picker-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.range === range);
+      });
+
+      // 更新标签显示
+      const config = dateRangeConfig[range];
+      if (config) {
+        document.getElementById('date-picker-label').textContent = t(config.labelKey);
+      }
+
+      // 隐藏自定义日期输入
+      document.getElementById('custom-date-inputs').classList.remove('show');
+
+      // 添加到最近使用
+      if (range !== 'custom') {
+        addToRecentlyUsed(range);
+      }
+
+      // 关闭下拉框并加载图表
+      document.getElementById('date-picker-dropdown').classList.remove('open');
+      document.getElementById('date-picker-trigger').classList.remove('open');
+      loadMainChart();
+    }
+
+    // 添加到最近使用
+    function addToRecentlyUsed(range) {
+      recentlyUsedRanges = recentlyUsedRanges.filter(r => r !== range);
+      recentlyUsedRanges.unshift(range);
+      recentlyUsedRanges = recentlyUsedRanges.slice(0, 5);
+      try {
+        localStorage.setItem('recentDateRanges', JSON.stringify(recentlyUsedRanges));
+      } catch (e) {}
+    }
+
+    // 切换自定义日期输入
+    function toggleCustomDate() {
+      const inputs = document.getElementById('custom-date-inputs');
+      inputs.classList.toggle('show');
+
+      // 设置默认日期
+      const now = new Date();
+      const startInput = document.getElementById('custom-start-date');
+      const endInput = document.getElementById('custom-end-date');
+
+      if (!startInput.value) {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startInput.value = weekAgo.toISOString().split('T')[0];
+      }
+      if (!endInput.value) {
+        endInput.value = now.toISOString().split('T')[0];
+      }
+    }
+
+    // 应用自定义日期
+    function applyCustomDate() {
+      const startInput = document.getElementById('custom-start-date');
+      const endInput = document.getElementById('custom-end-date');
+
+      if (!startInput.value || !endInput.value) {
+        alert(currentLang === 'zh' ? '请选择开始和结束日期' : 'Please select start and end dates');
+        return;
+      }
+
+      customStartDate = new Date(startInput.value + 'T00:00:00Z');
+      customEndDate = new Date(endInput.value + 'T23:59:59Z');
+
+      if (customStartDate > customEndDate) {
+        alert(currentLang === 'zh' ? '开始日期不能晚于结束日期' : 'Start date cannot be after end date');
+        return;
+      }
+
+      currentDateRange = 'custom';
+
+      // 更新标签显示
+      const label = `${startInput.value} - ${endInput.value}`;
+      document.getElementById('date-picker-label').textContent = label;
+
+      // 更新选中状态
+      document.querySelectorAll('.date-picker-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.range === 'custom');
+      });
+
+      // 关闭下拉框并加载图表
+      document.getElementById('date-picker-dropdown').classList.remove('open');
+      document.getElementById('date-picker-trigger').classList.remove('open');
+      loadMainChart();
+    }
 
     document.querySelectorAll('.chart-type-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1978,12 +2431,50 @@
     // 加载主图表
     async function loadMainChart() {
       try {
-        // 性能优化：限制请求数据量
-        const limit = currentRange === 0 ? 100000 : currentRange;
-        const res = await fetch('/api/data?limit=' + limit);
-        allData = await res.json();
+        // 获取日期范围
+        let startDate = null;
+        let endDate = null;
 
-        if (allData.length === 0) return;
+        if (currentDateRange === 'custom') {
+          startDate = customStartDate;
+          endDate = customEndDate;
+        } else {
+          const config = dateRangeConfig[currentDateRange];
+          if (config) {
+            const dates = config.getDates();
+            startDate = dates.start;
+            endDate = dates.end;
+          }
+        }
+
+        // 获取数据（获取足够多的数据用于过滤）
+        const res = await fetch('/api/data?limit=250000');
+        let rawData = await res.json();
+
+        if (rawData.length === 0) return;
+
+        // 根据日期范围过滤数据
+        if (startDate || endDate) {
+          allData = rawData.filter(d => {
+            const ts = new Date(d.timestamp);
+            if (startDate && ts < startDate) return false;
+            if (endDate && ts > endDate) return false;
+            return true;
+          });
+        } else {
+          allData = rawData;
+        }
+
+        if (allData.length === 0) {
+          // 没有数据，显示空图表
+          if (mainChart) {
+            mainChart.data.labels = [];
+            mainChart.data.datasets[0].data = [];
+            mainChart.update('none');
+          }
+          document.getElementById('chart-subtitle').textContent = currentLang === 'zh' ? '选定范围内无数据' : 'No data in selected range';
+          return;
+        }
 
         processedData = allData;
 
@@ -1991,18 +2482,8 @@
         const needsAggregation = chartType === 'smooth' || allData.length > 1000;
 
         if (needsAggregation) {
-          // 根据数据量和时间范围动态计算聚合大小
-          let aggregateSize;
-          if (chartType === 'smooth') {
-            aggregateSize = currentRange === 720 ? 12 :      // 1h: 每分钟 (12个点)
-                            currentRange === 4320 ? 60 :     // 6h: 每5分钟 (60个点)
-                            currentRange === 8640 ? 120 :    // 12h: 每10分钟 (120个点)
-                            currentRange === 17280 ? 240 :   // 24h: 每20分钟 (240个点)
-                            Math.max(60, Math.floor(allData.length / 500)); // all: 动态
-          } else {
-            // 原始模式大数据量：采样以保持约500个点
-            aggregateSize = Math.max(1, Math.floor(allData.length / 500));
-          }
+          // 根据数据量动态计算聚合大小，保持约500个点
+          const aggregateSize = Math.max(1, Math.floor(allData.length / 500));
 
           processedData = [];
           for (let i = 0; i < allData.length; i += aggregateSize) {
@@ -2015,13 +2496,19 @@
           }
         }
 
+        // 判断是否显示日期（跨天数据）
+        const firstDate = new Date(processedData[0].timestamp);
+        const lastDate = new Date(processedData[processedData.length - 1].timestamp);
+        const daysDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24);
+        const showDate = daysDiff >= 1;
+
         // 使用UTC时间格式化x轴标签
         const labels = processedData.map(d => {
           const date = new Date(d.timestamp);
           const hours = String(date.getUTCHours()).padStart(2, '0');
           const minutes = String(date.getUTCMinutes()).padStart(2, '0');
 
-          if (currentRange >= 8640 || currentRange === 0) {
+          if (showDate) {
             // 长时间范围：显示日期+时间
             const month = date.getUTCMonth() + 1;
             const day = date.getUTCDate();
@@ -2160,10 +2647,15 @@
         const subtitle = document.getElementById('chart-subtitle');
         if (subtitle) {
           const pointCount = processedData.length;
-          const originalCount = allData.length;
-          const rangeText = currentRange === 0
-            ? (currentLang === 'zh' ? '全部数据' : 'All data')
-            : (currentLang === 'zh' ? `最近${currentRange === 720 ? '1小时' : currentRange === 4320 ? '6小时' : currentRange === 8640 ? '12小时' : '24小时'}` : `Last ${currentRange === 720 ? '1h' : currentRange === 4320 ? '6h' : currentRange === 8640 ? '12h' : '24h'}`);
+          const config = dateRangeConfig[currentDateRange];
+          let rangeText;
+          if (currentDateRange === 'custom') {
+            rangeText = document.getElementById('date-picker-label').textContent;
+          } else if (config) {
+            rangeText = t(config.labelKey);
+          } else {
+            rangeText = currentLang === 'zh' ? '全部数据' : 'All data';
+          }
           const modeText = chartType === 'smooth' ? (currentLang === 'zh' ? '平滑' : 'Smooth') : (currentLang === 'zh' ? '原始' : 'Raw');
           subtitle.textContent = `${rangeText} · ${pointCount.toLocaleString()} ${currentLang === 'zh' ? '数据点' : 'points'} · ${modeText} (UTC)`;
         }
