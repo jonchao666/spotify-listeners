@@ -392,6 +392,294 @@
       }
     }
 
+    /* 每日数据表格 */
+    .daily-table {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .daily-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 1fr 1fr 100px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .daily-row:last-child {
+      border-bottom: none;
+    }
+
+    .daily-row:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .daily-row.header {
+      background: var(--bg-tertiary);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .daily-date {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .daily-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .daily-streams {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--spotify-green);
+    }
+
+    .daily-samples {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-align: right;
+    }
+
+    .load-more-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.2s;
+    }
+
+    .load-more-btn:hover {
+      background: var(--bg-secondary);
+      border-color: var(--spotify-green);
+      color: var(--spotify-green);
+    }
+
+    .load-more-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+      .daily-row {
+        grid-template-columns: 90px 1fr 1fr 1fr;
+      }
+      .daily-samples {
+        display: none;
+      }
+    }
+
+    /* 邮件设置模态框 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      padding: 32px;
+      position: relative;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--spotify-green);
+      box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+    }
+
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .form-checkbox input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--spotify-green);
+    }
+
+    .form-checkbox span {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-primary);
+      border-color: var(--text-tertiary);
+    }
+
+    .btn-primary {
+      background: var(--spotify-green);
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1ed760;
+      transform: translateY(-1px);
+    }
+
+    .email-status {
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .email-status.enabled {
+      background: rgba(29, 185, 84, 0.1);
+      border: 1px solid rgba(29, 185, 84, 0.3);
+      color: var(--spotify-green);
+    }
+
+    .email-status.disabled {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+
+    /* 简化的当前听众卡片 */
+    .current-card {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border: none;
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+    }
+
+    .current-card .metric-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .current-card .metric-value {
+      color: white;
+      font-size: 56px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .current-card .metric-subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+    }
+
     /* 关键指标网格 - 保留用于fallback */
     .key-metrics {
       display: grid;
@@ -1116,6 +1404,15 @@
       <div id="hourly-ranking"></div>
     </section>
 
+    <!-- ========== 每日数据 ========== -->
+    <section class="section" id="daily-section">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="section.dailyStats">每日数据</h2>
+        <p class="section-subtitle" data-i18n="section.dailyStatsDesc">历史每日平均、峰值与预测播放量</p>
+      </div>
+      <div id="daily-data"></div>
+    </section>
+
     <!-- ========== 快捷操作 ========== -->
     <section class="actions-section">
       <div class="section-header">
@@ -1134,6 +1431,10 @@
           <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
           <span data-i18n="action.export">导出 CSV</span>
         </a>
+        <button onclick="openEmailSettings()" class="action-btn">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          <span data-i18n="action.email">邮件通知</span>
+        </button>
         <button onclick="handleLogin()" class="action-btn">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
           <span data-i18n="action.login">重新登录</span>
@@ -1149,6 +1450,66 @@
     <footer class="footer" data-i18n="footer">
       Spotify 实时分析 · Powered by Claude Code
     </footer>
+  </div>
+
+  <!-- 邮件设置模态框 -->
+  <div id="email-modal" class="modal-overlay">
+    <div class="modal">
+      <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+      <div class="modal-title">📧 邮件通知设置</div>
+
+      <div id="email-status" class="email-status disabled">加载中...</div>
+
+      <div class="form-group">
+        <label class="form-checkbox">
+          <input type="checkbox" id="email-enabled">
+          <span data-i18n="email.enable">启用邮件通知</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">SMTP 服务器</label>
+          <input type="text" id="email-host" class="form-input" placeholder="smtp.gmail.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">端口</label>
+          <input type="number" id="email-port" class="form-input" placeholder="587">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">发件邮箱</label>
+        <input type="email" id="email-user" class="form-input" placeholder="your-email@gmail.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">邮箱密码 / 应用专用密码</label>
+        <input type="password" id="email-pass" class="form-input" placeholder="留空则不更改">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">接收通知邮箱</label>
+        <input type="email" id="email-to" class="form-input" placeholder="notifications@example.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-checkbox">
+          <input type="checkbox" id="email-secure">
+          <span>使用 SSL/TLS (端口465时启用)</span>
+        </label>
+      </div>
+
+      <div style="background: var(--bg-tertiary); border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+        <strong>提示：</strong>Gmail 用户需要使用 <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--spotify-green);">应用专用密码</a>。修改仅在当前会话有效，永久修改请编辑 .env 文件。
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="testEmail()">发送测试</button>
+        <button class="btn btn-secondary" onclick="closeEmailModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveEmailSettings()">保存设置</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1184,7 +1545,22 @@
         'action.export': '导出 CSV',
         'action.login': '重新登录',
         'action.clear': '清空数据',
+        'action.email': '邮件通知',
         'footer': 'Spotify 实时分析 · Powered by Claude Code',
+        'section.dailyStats': '每日数据',
+        'section.dailyStatsDesc': '历史每日平均、峰值与预测播放量',
+        'daily.date': '日期',
+        'daily.avg': '平均听众',
+        'daily.peak': '峰值',
+        'daily.streams': '预测播放',
+        'daily.samples': '采样数',
+        'daily.loadMore': '加载更多',
+        'daily.noMore': '没有更多数据',
+        'daily.noData': '暂无数据',
+        'email.enable': '启用邮件通知',
+        'email.testSuccess': '测试邮件已发送',
+        'email.testFail': '发送失败',
+        'email.saveSuccess': '设置已保存',
         'hero.current': '当前听众',
         'hero.todayAvg': '今日平均',
         'hero.prediction': '预测播放量',
@@ -1254,7 +1630,22 @@
         'action.export': 'Export CSV',
         'action.login': 'Re-login',
         'action.clear': 'Clear Data',
+        'action.email': 'Email Alerts',
         'footer': 'Spotify Real-Time Analytics · Powered by Claude Code',
+        'section.dailyStats': 'Daily Data',
+        'section.dailyStatsDesc': 'Historical daily average, peak, and predicted streams',
+        'daily.date': 'Date',
+        'daily.avg': 'Avg Listeners',
+        'daily.peak': 'Peak',
+        'daily.streams': 'Est. Streams',
+        'daily.samples': 'Samples',
+        'daily.loadMore': 'Load More',
+        'daily.noMore': 'No more data',
+        'daily.noData': 'No data',
+        'email.enable': 'Enable Email Notifications',
+        'email.testSuccess': 'Test email sent',
+        'email.testFail': 'Send failed',
+        'email.saveSuccess': 'Settings saved',
         'hero.current': 'Current Listeners',
         'hero.todayAvg': 'Today Average',
         'hero.prediction': 'Predicted Streams',
@@ -1316,6 +1707,10 @@
       });
 
       refresh();
+      // 切换语言时重新加载每日数据表格以更新翻译
+      dailyDataOffset = 0;
+      dailyDataHasMore = true;
+      loadDailyData();
     }
 
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1469,32 +1864,11 @@
         document.getElementById('hero-content').innerHTML = `
           <!-- 核心指标卡片 -->
           <div class="hero-main">
-            <!-- 当前听众 -->
-            <div class="metric-card">
+            <!-- 当前听众 (简化版 - 只显示当前数值) -->
+            <div class="current-card">
               <div class="metric-label">${t('hero.current')}</div>
               <div class="metric-value">${current.toLocaleString()}</div>
-              <div class="metric-compare">
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'}</span>
-                  <span class="metric-compare-value">${todayAvg.toFixed(1)} ${formatChange(calcChange(current, todayAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日平均' : 'Yesterday Avg'}</span>
-                  <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, yesterdayAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
-                  <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisWeekAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
-                  <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(current, thisMonthAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史平均' : 'All-time Avg'}</span>
-                  <span class="metric-compare-value">${overallAvg.toFixed(1)} ${formatChange(calcChange(current, overallAvg))}</span>
-                </div>
-              </div>
+              <div class="metric-subtitle">${currentLang === 'zh' ? '实时在线' : 'Listening Now'}</div>
             </div>
 
             <!-- 今日平均 -->
@@ -1945,6 +2319,189 @@
       }
     }
 
+    // ========== 每日数据表格 ==========
+    let dailyDataOffset = 0;
+    let dailyDataHasMore = true;
+    let dailyDataLoading = false;
+    const DAILY_DATA_LIMIT = 10;
+
+    async function loadDailyData(append = false) {
+      if (dailyDataLoading) return;
+      if (append && !dailyDataHasMore) return;
+
+      dailyDataLoading = true;
+
+      try {
+        if (!append) {
+          dailyDataOffset = 0;
+        }
+
+        const res = await fetch(`/api/analytics/daily?limit=${DAILY_DATA_LIMIT}&offset=${dailyDataOffset}`);
+        const result = await res.json();
+
+        if (!result.data || result.data.length === 0) {
+          if (!append) {
+            document.getElementById('daily-data').innerHTML = `<div class="loading">${t('daily.noData')}</div>`;
+          }
+          dailyDataHasMore = false;
+          updateLoadMoreButton();
+          return;
+        }
+
+        dailyDataHasMore = result.hasMore;
+        dailyDataOffset += result.data.length;
+
+        const rows = result.data.map(d => `
+          <div class="daily-row">
+            <div class="daily-date">${d.date}</div>
+            <div class="daily-value">${d.avgCount.toLocaleString()}</div>
+            <div class="daily-value">${d.maxCount.toLocaleString()}</div>
+            <div class="daily-streams">${d.predictedStreams.toLocaleString()}</div>
+            <div class="daily-samples">${d.samples.toLocaleString()}</div>
+          </div>
+        `).join('');
+
+        if (append) {
+          const table = document.querySelector('#daily-data .daily-table');
+          if (table) {
+            table.insertAdjacentHTML('beforeend', rows);
+          }
+        } else {
+          document.getElementById('daily-data').innerHTML = `
+            <div class="daily-table">
+              <div class="daily-row header">
+                <div>${t('daily.date')}</div>
+                <div>${t('daily.avg')}</div>
+                <div>${t('daily.peak')}</div>
+                <div>${t('daily.streams')}</div>
+                <div>${t('daily.samples')}</div>
+              </div>
+              ${rows}
+            </div>
+            <button id="load-more-btn" class="load-more-btn" onclick="loadMoreDailyData()">
+              ${t('daily.loadMore')}
+            </button>
+          `;
+        }
+
+        updateLoadMoreButton();
+      } catch (e) {
+        console.error('Failed to load daily data:', e);
+        if (!append) {
+          document.getElementById('daily-data').innerHTML = `<div class="loading">${t('daily.noData')}</div>`;
+        }
+      } finally {
+        dailyDataLoading = false;
+      }
+    }
+
+    function loadMoreDailyData() {
+      loadDailyData(true);
+    }
+
+    function updateLoadMoreButton() {
+      const btn = document.getElementById('load-more-btn');
+      if (btn) {
+        if (!dailyDataHasMore) {
+          btn.textContent = t('daily.noMore');
+          btn.disabled = true;
+        } else {
+          btn.textContent = t('daily.loadMore');
+          btn.disabled = false;
+        }
+      }
+    }
+
+    // ========== 邮件设置 ==========
+    async function openEmailSettings() {
+      document.getElementById('email-modal').style.display = 'flex';
+      await loadEmailConfig();
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-modal').style.display = 'none';
+    }
+
+    async function loadEmailConfig() {
+      try {
+        const res = await fetch('/api/email/config');
+        const config = await res.json();
+
+        document.getElementById('email-enabled').checked = config.enabled;
+        document.getElementById('email-host').value = config.host || '';
+        document.getElementById('email-port').value = config.port || 587;
+        document.getElementById('email-secure').checked = config.secure;
+        document.getElementById('email-user').placeholder = config.user || 'your-email@gmail.com';
+        document.getElementById('email-to').placeholder = config.to || 'notifications@example.com';
+
+        const statusEl = document.getElementById('email-status');
+        if (config.enabled && config.hasPassword) {
+          statusEl.className = 'email-status enabled';
+          statusEl.innerHTML = `✅ ${currentLang === 'zh' ? '邮件通知已启用' : 'Email notifications enabled'}${config.lastEmailSent ? ` · ${currentLang === 'zh' ? '最后发送' : 'Last sent'}: ${new Date(config.lastEmailSent).toLocaleString()}` : ''}`;
+        } else if (config.enabled && !config.hasPassword) {
+          statusEl.className = 'email-status disabled';
+          statusEl.innerHTML = `⚠️ ${currentLang === 'zh' ? '已启用但未配置密码' : 'Enabled but no password configured'}`;
+        } else {
+          statusEl.className = 'email-status disabled';
+          statusEl.innerHTML = `❌ ${currentLang === 'zh' ? '邮件通知未启用' : 'Email notifications disabled'}`;
+        }
+      } catch (e) {
+        console.error('Failed to load email config:', e);
+        document.getElementById('email-status').innerHTML = `❌ ${currentLang === 'zh' ? '加载配置失败' : 'Failed to load config'}`;
+      }
+    }
+
+    async function saveEmailSettings() {
+      try {
+        const config = {
+          enabled: document.getElementById('email-enabled').checked,
+          host: document.getElementById('email-host').value || undefined,
+          port: document.getElementById('email-port').value || undefined,
+          secure: document.getElementById('email-secure').checked,
+          user: document.getElementById('email-user').value || undefined,
+          to: document.getElementById('email-to').value || undefined
+        };
+
+        const pass = document.getElementById('email-pass').value;
+        if (pass) {
+          config.pass = pass;
+        }
+
+        const res = await fetch('/api/email/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          alert(t('email.saveSuccess') + '\n\n' + result.message);
+          document.getElementById('email-pass').value = '';
+          await loadEmailConfig();
+        } else {
+          alert(t('email.testFail') + ': ' + result.message);
+        }
+      } catch (e) {
+        alert(t('email.testFail') + ': ' + e.message);
+      }
+    }
+
+    async function testEmail() {
+      try {
+        const res = await fetch('/api/email/test', { method: 'POST' });
+        const result = await res.json();
+
+        if (result.success) {
+          alert(t('email.testSuccess'));
+        } else {
+          alert(t('email.testFail') + ': ' + result.message);
+        }
+      } catch (e) {
+        alert(t('email.testFail') + ': ' + e.message);
+      }
+    }
+
     // 刷新所有数据
     async function refresh() {
       await Promise.all([
@@ -1958,6 +2515,8 @@
     // 初始化
     async function init() {
       await refresh();
+      // 每日数据只在初始化时加载一次，不需要频繁刷新
+      await loadDailyData();
     }
 
     // 自动刷新（每5秒）

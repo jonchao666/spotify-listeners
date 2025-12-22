@@ -743,6 +743,119 @@ function startServer() {
     }
   });
 
+  // 每日汇总数据 (用于历史日报表格)
+  app.get('/api/analytics/daily', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 30;
+      const offset = parseInt(req.query.offset) || 0;
+
+      const result = db.exec(`
+        SELECT
+          DATE(timestamp) as date,
+          AVG(listener_count) as avgCount,
+          MAX(listener_count) as maxCount,
+          MIN(listener_count) as minCount,
+          COUNT(*) as samples
+        FROM listeners
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT ? OFFSET ?
+      `, [limit, offset]);
+
+      if (result.length === 0) {
+        return res.json({ data: [], hasMore: false });
+      }
+
+      const dailyData = result[0].values.map(row => ({
+        date: row[0],
+        avgCount: Math.round(row[1]),
+        maxCount: row[2],
+        minCount: row[3],
+        samples: row[4],
+        // 预测播放量: 平均听众 * 24小时 * 60分钟 / 3分钟(每首歌)
+        predictedStreams: Math.round((row[1] * 24 * 60) / 3)
+      }));
+
+      // 检查是否还有更多数据
+      const countResult = db.exec('SELECT COUNT(DISTINCT DATE(timestamp)) as total FROM listeners');
+      const totalDays = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+      const hasMore = (offset + limit) < totalDays;
+
+      res.json({ data: dailyData, hasMore, total: totalDays });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 获取邮件配置状态 (不返回密码)
+  app.get('/api/email/config', (req, res) => {
+    res.json({
+      enabled: CONFIG.email.enabled,
+      host: CONFIG.email.host,
+      port: CONFIG.email.port,
+      secure: CONFIG.email.secure,
+      user: CONFIG.email.user ? CONFIG.email.user.replace(/(.{2}).*(@.*)/, '$1***$2') : '',
+      to: CONFIG.email.to ? CONFIG.email.to.replace(/(.{2}).*(@.*)/, '$1***$2') : '',
+      from: CONFIG.email.from,
+      hasPassword: !!CONFIG.email.pass,
+      lastEmailSent: lastEmailSent ? new Date(lastEmailSent).toISOString() : null,
+      cooldownMinutes: EMAIL_COOLDOWN / 60000
+    });
+  });
+
+  // 更新邮件配置
+  app.post('/api/email/config', (req, res) => {
+    try {
+      const { enabled, host, port, secure, user, pass, to, from } = req.body;
+
+      // 更新内存中的配置
+      if (typeof enabled === 'boolean') CONFIG.email.enabled = enabled;
+      if (host) CONFIG.email.host = host;
+      if (port) CONFIG.email.port = parseInt(port);
+      if (typeof secure === 'boolean') CONFIG.email.secure = secure;
+      if (user) CONFIG.email.user = user;
+      if (pass) CONFIG.email.pass = pass;
+      if (to) CONFIG.email.to = to;
+      if (from) CONFIG.email.from = from;
+
+      res.json({
+        success: true,
+        message: '邮件配置已更新 (仅当前会话有效，重启后需要修改 .env 文件)',
+        config: {
+          enabled: CONFIG.email.enabled,
+          host: CONFIG.email.host,
+          port: CONFIG.email.port,
+          user: CONFIG.email.user ? CONFIG.email.user.replace(/(.{2}).*(@.*)/, '$1***$2') : ''
+        }
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // 测试邮件发送
+  app.post('/api/email/test', async (req, res) => {
+    try {
+      const result = await sendEmailNotification(
+        '测试邮件',
+        '这是一封测试邮件，如果您收到此邮件，说明邮件通知功能配置正确！'
+      );
+
+      if (result) {
+        res.json({ success: true, message: '测试邮件已发送，请检查收件箱' });
+      } else {
+        res.json({
+          success: false,
+          message: CONFIG.email.enabled
+            ? '发送失败，请检查邮件配置或查看服务器日志'
+            : '邮件通知未启用，请先在 .env 中启用'
+        });
+      }
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
   // 实时监控数据（最近5分钟）
   app.get('/api/realtime', (req, res) => {
     try {
