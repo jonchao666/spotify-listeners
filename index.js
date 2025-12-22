@@ -941,10 +941,51 @@ function startServer() {
         endDate = todayStart.toISOString();
         label = '昨天';
       } else if (type === 'last7days') {
-        // 过去7天每小时的平均值
         startDate = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
         endDate = todayStart.toISOString();
-        label = '近7天平均';
+        label = '近7天';
+      } else if (type === 'thisWeek') {
+        // 本周（周一到今天）
+        const dayOfWeek = now.getUTCDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        startDate = new Date(todayStart.getTime() - daysFromMonday * 24 * 60 * 60 * 1000).toISOString();
+        endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        label = '本周';
+      } else if (type === 'lastWeek') {
+        // 上周（周一到周日）
+        const dayOfWeek = now.getUTCDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const thisWeekMonday = new Date(todayStart.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+        startDate = new Date(thisWeekMonday.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        endDate = thisWeekMonday.toISOString();
+        label = '上周';
+      } else if (type === 'last28days') {
+        startDate = new Date(todayStart.getTime() - 28 * 24 * 60 * 60 * 1000).toISOString();
+        endDate = todayStart.toISOString();
+        label = '近28天';
+      } else if (type === 'thisMonth') {
+        // 本月（1号到今天）
+        startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+        endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        label = '本月';
+      } else if (type === 'lastMonth') {
+        // 上月
+        startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
+        endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+        label = '上月';
+      } else if (type === 'lastYear') {
+        startDate = new Date(todayStart.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString();
+        endDate = todayStart.toISOString();
+        label = '近一年';
+      } else if (type === 'thisYear') {
+        // 今年（1月1日到今天）
+        startDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1)).toISOString();
+        endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        label = '今年';
+      } else if (type === 'all') {
+        startDate = '1970-01-01T00:00:00Z';
+        endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        label = '全部';
       } else {
         return res.status(400).json({ error: '无效的类型参数' });
       }

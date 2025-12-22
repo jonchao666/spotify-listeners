@@ -396,65 +396,111 @@
       }
     }
 
-    /* 每日数据表格 */
-    .daily-table {
+    /* 时段分析折叠功能 */
+    .hourly-row.hidden {
+      display: none;
+    }
+
+    .hourly-table.expanded .hourly-row.hidden {
+      display: grid;
+    }
+
+    .hourly-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .hourly-toggle-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .hourly-toggle-icon {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      transition: transform 0.3s;
+    }
+
+    .hourly-toggle-btn.expanded .hourly-toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    /* 每日数据网格 */
+    .daily-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .daily-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      overflow: hidden;
+      border-radius: 12px;
+      padding: 12px;
+      transition: all 0.2s;
     }
 
-    .daily-row {
-      display: grid;
-      grid-template-columns: 120px 1fr 1fr 1fr;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border-color);
-      align-items: center;
-      transition: background 0.2s;
+    .daily-card:hover {
+      border-color: var(--spotify-green);
+      transform: translateY(-2px);
     }
 
-    .daily-row:last-child {
-      border-bottom: none;
-    }
-
-    .daily-row:hover {
-      background: var(--bg-tertiary);
-    }
-
-    .daily-row.header {
-      background: var(--bg-tertiary);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-
-    .daily-date {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .daily-value {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .daily-streams {
-      font-size: 15px;
+    .daily-card-date {
       font-weight: 700;
+      font-size: 13px;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .daily-card-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .daily-card-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .daily-card-label {
+      color: var(--text-secondary);
+    }
+
+    .daily-card-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .daily-card-value.streams {
       color: var(--spotify-green);
     }
 
     .load-more-btn {
       width: 100%;
-      padding: 16px;
+      padding: 14px;
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       border-radius: 12px;
       color: var(--text-secondary);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       margin-top: 16px;
@@ -470,12 +516,6 @@
     .load-more-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      .daily-row {
-        grid-template-columns: 90px 1fr 1fr 1fr;
-      }
     }
 
     /* 邮件设置模态框 */
@@ -680,32 +720,62 @@
       color: var(--danger);
     }
 
-    /* 简化的当前听众卡片 */
+    /* 当前听众卡片 */
     .current-card {
       background: linear-gradient(135deg, #1DB954, #1ed760);
       border: none;
       border-radius: 20px;
-      padding: 32px;
-      text-align: center;
+      padding: 24px;
       box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
     }
 
     .current-card .metric-label {
       color: rgba(255, 255, 255, 0.9);
-      font-size: 14px;
-      margin-bottom: 12px;
+      font-size: 13px;
+      margin-bottom: 8px;
     }
 
     .current-card .metric-value {
       color: white;
-      font-size: 56px;
+      font-size: 42px;
       font-weight: 800;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .current-card .metric-subtitle {
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 13px;
+    .current-card .current-compare {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 12px;
+      margin-top: 4px;
+    }
+
+    .current-card .metric-compare-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .current-card .metric-compare-label {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 12px;
+    }
+
+    .current-card .metric-compare-value {
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .current-card .metric-change {
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .current-card .metric-change.up {
+      color: #fff;
+    }
+
+    .current-card .metric-change.down {
+      color: rgba(255, 200, 200, 0.9);
     }
 
     /* Facebook风格日期选择器 */
@@ -865,9 +935,9 @@
     .chart-stats {
       display: flex;
       gap: 24px;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .chart-stat-item {
@@ -954,8 +1024,40 @@
       --curve-color: #3b82f6;
     }
 
+    .curve-checkbox.thisWeek {
+      --curve-color: #14b8a6;
+    }
+
+    .curve-checkbox.lastWeek {
+      --curve-color: #06b6d4;
+    }
+
     .curve-checkbox.last7days {
       --curve-color: #f59e0b;
+    }
+
+    .curve-checkbox.last28days {
+      --curve-color: #ec4899;
+    }
+
+    .curve-checkbox.thisMonth {
+      --curve-color: #f97316;
+    }
+
+    .curve-checkbox.lastMonth {
+      --curve-color: #ef4444;
+    }
+
+    .curve-checkbox.thisYear {
+      --curve-color: #a855f7;
+    }
+
+    .curve-checkbox.lastYear {
+      --curve-color: #8b5cf6;
+    }
+
+    .curve-checkbox.all {
+      --curve-color: #6b7280;
     }
 
     .curve-checkbox:has(input:checked) {
@@ -1121,8 +1223,7 @@
       border-radius: 10px;
     }
 
-    .time-btn,
-    .chart-type-btn {
+    .time-btn {
       padding: 8px 16px;
       background: transparent;
       border: none;
@@ -1134,13 +1235,11 @@
       transition: all 0.2s ease;
     }
 
-    .time-btn:hover,
-    .chart-type-btn:hover {
+    .time-btn:hover {
       color: var(--text-primary);
     }
 
-    .time-btn.active,
-    .chart-type-btn.active {
+    .time-btn.active {
       background: var(--spotify-green);
       color: white;
     }
@@ -1756,17 +1855,13 @@
                 </div>
               </div>
             </div>
-            <div class="time-selector">
-              <button class="chart-type-btn active" data-type="raw" data-i18n="chart.raw">原始</button>
-              <button class="chart-type-btn" data-type="smooth" data-i18n="chart.smooth">平滑</button>
-            </div>
           </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="main-chart"></canvas>
         </div>
         <!-- 图表统计摘要 -->
         <div class="chart-stats" id="chart-stats"></div>
+        <div class="chart-container">
+          <canvas id="main-chart"></canvas>
+        </div>
       </div>
     </section>
 
@@ -1786,9 +1881,41 @@
             <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()" checked>
             <span class="curve-label">昨天</span>
           </label>
+          <label class="curve-checkbox thisWeek">
+            <input type="checkbox" id="curve-thisWeek" onchange="updateCurveChart()">
+            <span class="curve-label">本周</span>
+          </label>
+          <label class="curve-checkbox lastWeek">
+            <input type="checkbox" id="curve-lastWeek" onchange="updateCurveChart()">
+            <span class="curve-label">上周</span>
+          </label>
           <label class="curve-checkbox last7days">
             <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()" checked>
-            <span class="curve-label">近7天平均</span>
+            <span class="curve-label">近7天</span>
+          </label>
+          <label class="curve-checkbox last28days">
+            <input type="checkbox" id="curve-last28days" onchange="updateCurveChart()">
+            <span class="curve-label">近28天</span>
+          </label>
+          <label class="curve-checkbox thisMonth">
+            <input type="checkbox" id="curve-thisMonth" onchange="updateCurveChart()">
+            <span class="curve-label">本月</span>
+          </label>
+          <label class="curve-checkbox lastMonth">
+            <input type="checkbox" id="curve-lastMonth" onchange="updateCurveChart()">
+            <span class="curve-label">上月</span>
+          </label>
+          <label class="curve-checkbox thisYear">
+            <input type="checkbox" id="curve-thisYear" onchange="updateCurveChart()">
+            <span class="curve-label">今年</span>
+          </label>
+          <label class="curve-checkbox lastYear">
+            <input type="checkbox" id="curve-lastYear" onchange="updateCurveChart()">
+            <span class="curve-label">近一年</span>
+          </label>
+          <label class="curve-checkbox all">
+            <input type="checkbox" id="curve-all" onchange="updateCurveChart()">
+            <span class="curve-label">全部</span>
           </label>
         </div>
         <div class="chart-container">
@@ -1804,6 +1931,10 @@
         <p class="section-subtitle" data-i18n="section.hourlyStatsDesc">各小时平均听众排行 (UTC)</p>
       </div>
       <div id="hourly-ranking"></div>
+      <button class="hourly-toggle-btn" id="hourly-toggle" onclick="toggleHourlyExpand()">
+        <span id="hourly-toggle-text">展开全部</span>
+        <svg class="hourly-toggle-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
     </section>
 
     <!-- ========== 每日数据 ========== -->
@@ -2212,7 +2343,6 @@
     let currentDateRange = 'today'; // 当前选中的日期范围
     let customStartDate = null;
     let customEndDate = null;
-    let chartType = 'raw'; // 'raw' 或 'smooth'
     let allData = [];
     let processedData = []; // 图表使用的处理后数据
     let recentlyUsedRanges = []; // 最近使用的范围
@@ -2427,14 +2557,6 @@
       loadMainChart();
     }
 
-    document.querySelectorAll('.chart-type-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        chartType = btn.dataset.type;
-        loadMainChart();
-      });
-    });
 
     // 加载数据概览（整合所有数据展示，独立获取数据）
     async function loadHeroSection() {
@@ -2510,6 +2632,19 @@
         const yesterdayPeak = yesterdayValues.length > 0 ? Math.max(...yesterdayValues) : null;
         const yesterdayDailyStreams = calcDailyStreams(yesterdayAvg);
 
+        // === 昨天同一时刻的听众数 ===
+        const currentHourUTC = nowUTC.getUTCHours();
+        const currentMinuteUTC = nowUTC.getUTCMinutes();
+        const yesterdaySameTimeStart = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 1, currentHourUTC, currentMinuteUTC - 5, 0));
+        const yesterdaySameTimeEnd = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 1, currentHourUTC, currentMinuteUTC + 5, 0));
+        const yesterdaySameTimeData = heroData.filter(d => {
+          const ts = new Date(d.timestamp);
+          return ts >= yesterdaySameTimeStart && ts <= yesterdaySameTimeEnd;
+        });
+        const yesterdaySameTime = yesterdaySameTimeData.length > 0
+          ? Math.round(yesterdaySameTimeData.reduce((a, b) => a + b.listenerCount, 0) / yesterdaySameTimeData.length)
+          : null;
+
         // === 7-14天前数据 (用于对比) ===
         const lastWeekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 13, 0, 0, 0));
         const lastWeekEndUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 6, 0, 0, 0));
@@ -2556,11 +2691,28 @@
         document.getElementById('hero-content').innerHTML = `
           <!-- 核心指标卡片 -->
           <div class="hero-main">
-            <!-- 当前听众 (简化版 - 只显示当前数值) -->
+            <!-- 当前听众 (含对比数据) -->
             <div class="current-card">
               <div class="metric-label">${t('hero.current')}</div>
               <div class="metric-value">${current.toLocaleString()}</div>
-              <div class="metric-subtitle">${currentLang === 'zh' ? '实时在线' : 'Listening Now'}</div>
+              <div class="metric-compare current-compare">
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '1小时趋势' : '1h Trend'}</span>
+                  <span class="metric-compare-value">${avg1h ? avg1h.toFixed(0) : '-'} ${formatChange(trend1h)}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'}</span>
+                  <span class="metric-compare-value">${todayAvg.toFixed(0)} ${formatChange(calcChange(current, todayAvg))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日同时' : 'Yesterday'}</span>
+                  <span class="metric-compare-value">${yesterdaySameTime ? yesterdaySameTime.toLocaleString() : '-'} ${formatChange(calcChange(current, yesterdaySameTime))}</span>
+                </div>
+                <div class="metric-compare-item">
+                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天平均' : '7 Days Avg'}</span>
+                  <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(0) : '-'} ${formatChange(calcChange(current, thisWeekAvg))}</span>
+                </div>
+              </div>
             </div>
 
             <!-- 今日平均 -->
@@ -2641,32 +2793,6 @@
       }
     }
 
-    // 计算移动平均趋势线
-    function calculateTrendLine(values) {
-      const n = values.length;
-      if (n < 2) return values;
-
-      // 动态计算窗口大小：数据点的10%，最小5，最大50
-      const windowSize = Math.max(5, Math.min(50, Math.floor(n * 0.1)));
-      const result = [];
-
-      for (let i = 0; i < n; i++) {
-        // 计算以当前点为中心的窗口范围
-        const halfWindow = Math.floor(windowSize / 2);
-        const start = Math.max(0, i - halfWindow);
-        const end = Math.min(n, i + halfWindow + 1);
-
-        // 计算窗口内的平均值
-        let sum = 0;
-        for (let j = start; j < end; j++) {
-          sum += values[j];
-        }
-        result.push(sum / (end - start));
-      }
-
-      return result;
-    }
-
     // 加载主图表
     async function loadMainChart() {
       try {
@@ -2717,11 +2843,8 @@
 
         processedData = allData;
 
-        // 平滑模式或大数据量：数据聚合
-        const needsAggregation = chartType === 'smooth' || allData.length > 1000;
-
-        if (needsAggregation) {
-          // 根据数据量动态计算聚合大小，保持约500个点
+        // 大数据量时进行数据聚合，保持约500个点
+        if (allData.length > 1000) {
           const aggregateSize = Math.max(1, Math.floor(allData.length / 500));
 
           processedData = [];
@@ -2730,7 +2853,7 @@
             const avgCount = chunk.reduce((sum, d) => sum + d.listenerCount, 0) / chunk.length;
             processedData.push({
               timestamp: chunk[Math.floor(chunk.length / 2)].timestamp,
-              listenerCount: chartType === 'smooth' ? avgCount : Math.round(avgCount)
+              listenerCount: Math.round(avgCount)
             });
           }
         }
@@ -2759,9 +2882,6 @@
         });
         const values = processedData.map(d => d.listenerCount);
 
-        // 平滑模式下计算趋势线
-        const trendLineData = chartType === 'smooth' ? calculateTrendLine(values) : null;
-
         const ctx = document.getElementById('main-chart').getContext('2d');
 
         const datasets = [{
@@ -2777,29 +2897,13 @@
             return gradient;
           },
           fill: true,
-          tension: chartType === 'smooth' ? 0.4 : 0.1,
+          tension: 0.1,
           pointRadius: 0,
           pointHoverRadius: 8,
           pointHoverBackgroundColor: '#1DB954',
           pointHoverBorderColor: '#fff',
           pointHoverBorderWidth: 3
         }];
-
-        // 平滑模式下添加移动平均趋势线
-        if (chartType === 'smooth' && trendLineData) {
-          datasets.push({
-            label: currentLang === 'zh' ? '移动平均' : 'Moving Avg',
-            data: trendLineData,
-            borderColor: 'rgba(255, 165, 0, 0.9)',
-            borderWidth: 2.5,
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.3,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            pointHoverBackgroundColor: 'rgba(255, 165, 0, 1)'
-          });
-        }
 
         if (!mainChart) {
           mainChart = new Chart(ctx, {
@@ -2811,7 +2915,7 @@
               interaction: { intersect: false, mode: 'index' },
               plugins: {
                 legend: {
-                  display: chartType === 'smooth',
+                  display: false,
                   position: 'top',
                   align: 'end',
                   labels: {
@@ -2878,7 +2982,6 @@
         } else {
           mainChart.data.labels = labels;
           mainChart.data.datasets = datasets;
-          mainChart.options.plugins.legend.display = chartType === 'smooth';
           mainChart.update('none');
         }
 
@@ -2895,8 +2998,7 @@
           } else {
             rangeText = currentLang === 'zh' ? '全部数据' : 'All data';
           }
-          const modeText = chartType === 'smooth' ? (currentLang === 'zh' ? '平滑' : 'Smooth') : (currentLang === 'zh' ? '原始' : 'Raw');
-          subtitle.textContent = `${rangeText} · ${pointCount.toLocaleString()} ${currentLang === 'zh' ? '数据点' : 'points'} · ${modeText} (UTC)`;
+          subtitle.textContent = `${rangeText} · ${pointCount.toLocaleString()} ${currentLang === 'zh' ? '数据点' : 'points'} (UTC)`;
         }
 
         // 更新图表统计摘要
@@ -2940,13 +3042,29 @@
     const curveColors = {
       today: { border: '#1DB954', bg: 'rgba(29, 185, 84, 0.1)' },
       yesterday: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
-      last7days: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
+      thisWeek: { border: '#14b8a6', bg: 'rgba(20, 184, 166, 0.1)' },
+      lastWeek: { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },
+      last7days: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+      last28days: { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
+      thisMonth: { border: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },
+      lastMonth: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
+      thisYear: { border: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' },
+      lastYear: { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
+      all: { border: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' }
     };
 
     const curveLabels = {
       today: '今天',
       yesterday: '昨天',
-      last7days: '近7天平均'
+      thisWeek: '本周',
+      lastWeek: '上周',
+      last7days: '近7天',
+      last28days: '近28天',
+      thisMonth: '本月',
+      lastMonth: '上月',
+      thisYear: '今年',
+      lastYear: '近一年',
+      all: '全部'
     };
 
     async function fetchCurveData(type) {
@@ -2960,7 +3078,7 @@
     }
 
     async function updateCurveChart() {
-      const types = ['today', 'yesterday', 'last7days'];
+      const types = ['today', 'yesterday', 'thisWeek', 'lastWeek', 'last7days', 'last28days', 'thisMonth', 'lastMonth', 'thisYear', 'lastYear', 'all'];
       const selectedTypes = types.filter(t =>
         document.getElementById(`curve-${t}`).checked
       );
@@ -3117,9 +3235,11 @@
           const regions = getRegionalTimes(h.hour);
           const isTop3 = idx < 3;
           const isBottom3 = idx >= sorted.length - 3;
+          // 默认隐藏中间行（只显示前3和后3）
+          const isHidden = idx >= 3 && idx < sorted.length - 3;
 
           return `
-            <div class="hourly-row">
+            <div class="hourly-row${isHidden ? ' hidden' : ''}">
               <div class="hourly-rank ${isTop3 ? 'top3' : ''}">#${idx + 1}</div>
               <div class="hourly-time">
                 ${String(h.hour).padStart(2, '0')}:00 UTC
@@ -3153,6 +3273,25 @@
       } catch (e) {
         console.error('Failed to load hourly ranking:', e);
         document.getElementById('hourly-ranking').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
+      }
+    }
+
+    // 时段分析展开/折叠
+    let hourlyExpanded = false;
+    function toggleHourlyExpand() {
+      hourlyExpanded = !hourlyExpanded;
+      const table = document.querySelector('.hourly-table');
+      const btn = document.getElementById('hourly-toggle');
+      const text = document.getElementById('hourly-toggle-text');
+
+      if (hourlyExpanded) {
+        table.classList.add('expanded');
+        btn.classList.add('expanded');
+        text.textContent = currentLang === 'zh' ? '收起' : 'Collapse';
+      } else {
+        table.classList.remove('expanded');
+        btn.classList.remove('expanded');
+        text.textContent = currentLang === 'zh' ? '展开全部' : 'Show All';
       }
     }
 
@@ -3246,30 +3385,35 @@
         dailyDataHasMore = result.hasMore;
         dailyDataOffset += result.data.length;
 
-        const rows = result.data.map(d => `
-          <div class="daily-row">
-            <div class="daily-date">${d.date}</div>
-            <div class="daily-value">${d.avgCount.toFixed(1)}</div>
-            <div class="daily-value">${d.maxCount.toLocaleString()}</div>
-            <div class="daily-streams">${d.predictedStreams.toLocaleString()}</div>
+        const cards = result.data.map(d => `
+          <div class="daily-card">
+            <div class="daily-card-date">${d.date}</div>
+            <div class="daily-card-stats">
+              <div class="daily-card-stat">
+                <span class="daily-card-label">${t('daily.avg')}</span>
+                <span class="daily-card-value">${d.avgCount.toFixed(1)}</span>
+              </div>
+              <div class="daily-card-stat">
+                <span class="daily-card-label">${t('daily.peak')}</span>
+                <span class="daily-card-value">${d.maxCount.toLocaleString()}</span>
+              </div>
+              <div class="daily-card-stat">
+                <span class="daily-card-label">${t('daily.streams')}</span>
+                <span class="daily-card-value streams">${d.predictedStreams.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         `).join('');
 
         if (append) {
-          const table = document.querySelector('#daily-data .daily-table');
-          if (table) {
-            table.insertAdjacentHTML('beforeend', rows);
+          const grid = document.querySelector('#daily-data .daily-grid');
+          if (grid) {
+            grid.insertAdjacentHTML('beforeend', cards);
           }
         } else {
           document.getElementById('daily-data').innerHTML = `
-            <div class="daily-table">
-              <div class="daily-row header">
-                <div>${t('daily.date')}</div>
-                <div>${t('daily.avg')}</div>
-                <div>${t('daily.peak')}</div>
-                <div>${t('daily.streams')}</div>
-              </div>
-              ${rows}
+            <div class="daily-grid">
+              ${cards}
             </div>
             <button id="load-more-btn" class="load-more-btn" onclick="loadMoreDailyData()">
               ${t('daily.loadMore')}
