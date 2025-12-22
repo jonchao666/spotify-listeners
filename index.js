@@ -922,6 +922,66 @@ function startServer() {
     }
   });
 
+  // 曲线对比数据 - 获取指定日期的24小时数据
+  app.get('/api/analytics/curve', (req, res) => {
+    try {
+      const { type } = req.query; // 'today', 'yesterday', 'last7days'
+
+      const now = new Date();
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      let startDate, endDate, label;
+
+      if (type === 'today') {
+        startDate = todayStart.toISOString();
+        endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        label = '今天';
+      } else if (type === 'yesterday') {
+        startDate = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000).toISOString();
+        endDate = todayStart.toISOString();
+        label = '昨天';
+      } else if (type === 'last7days') {
+        // 过去7天每小时的平均值
+        startDate = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        endDate = todayStart.toISOString();
+        label = '近7天平均';
+      } else {
+        return res.status(400).json({ error: '无效的类型参数' });
+      }
+
+      // 查询小时级数据
+      const result = db.exec(`
+        SELECT
+          CAST(strftime('%H', timestamp) AS INTEGER) as hour,
+          AVG(listener_count) as avgCount
+        FROM listeners
+        WHERE timestamp >= ? AND timestamp < ?
+        GROUP BY hour
+        ORDER BY hour
+      `, [startDate, endDate]);
+
+      // 生成完整的24小时数据（填充缺失小时为null）
+      const hourlyMap = {};
+      if (result.length > 0) {
+        result[0].values.forEach(row => {
+          hourlyMap[row[0]] = Math.round(row[1] * 10) / 10;
+        });
+      }
+
+      const data = [];
+      for (let h = 0; h < 24; h++) {
+        data.push({
+          hour: h,
+          value: hourlyMap[h] !== undefined ? hourlyMap[h] : null
+        });
+      }
+
+      res.json({ type, label, data });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // 趋势分析（最近 N 小时的增长率）
   app.get('/api/analytics/trend', (req, res) => {
     try {

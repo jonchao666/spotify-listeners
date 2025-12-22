@@ -916,6 +916,71 @@
       }
     }
 
+    /* 曲线对比控制 */
+    .curve-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .curve-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border-color);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .curve-checkbox input {
+      display: none;
+    }
+
+    .curve-checkbox .curve-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .curve-checkbox.today {
+      --curve-color: #1DB954;
+    }
+
+    .curve-checkbox.yesterday {
+      --curve-color: #3b82f6;
+    }
+
+    .curve-checkbox.last7days {
+      --curve-color: #f59e0b;
+    }
+
+    .curve-checkbox:has(input:checked) {
+      border-color: var(--curve-color);
+      background: color-mix(in srgb, var(--curve-color) 15%, transparent);
+    }
+
+    .curve-checkbox:has(input:checked) .curve-label {
+      color: var(--curve-color);
+    }
+
+    .curve-checkbox::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--curve-color);
+      opacity: 0.3;
+      transition: opacity 0.2s;
+    }
+
+    .curve-checkbox:has(input:checked)::before {
+      opacity: 1;
+    }
+
     /* 关键指标网格 - 保留用于fallback */
     .key-metrics {
       display: grid;
@@ -1705,6 +1770,33 @@
       </div>
     </section>
 
+    <!-- ========== 曲线对比 ========== -->
+    <section class="section" id="curve-section">
+      <div class="section-header">
+        <h2 class="section-title">曲线对比</h2>
+        <p class="section-subtitle">不同时段的24小时听众分布对比 (UTC)</p>
+      </div>
+      <div class="card">
+        <div class="curve-controls">
+          <label class="curve-checkbox today">
+            <input type="checkbox" id="curve-today" onchange="updateCurveChart()">
+            <span class="curve-label">今天</span>
+          </label>
+          <label class="curve-checkbox yesterday">
+            <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()" checked>
+            <span class="curve-label">昨天</span>
+          </label>
+          <label class="curve-checkbox last7days">
+            <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()" checked>
+            <span class="curve-label">近7天平均</span>
+          </label>
+        </div>
+        <div class="chart-container">
+          <canvas id="curve-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
     <!-- ========== 时段分析 ========== -->
     <section class="section" id="hourly-section">
       <div class="section-header">
@@ -2116,6 +2208,7 @@
 
     // ========== 数据和图表 ==========
     let mainChart;
+    let curveChart; // 曲线对比图表
     let currentDateRange = 'today'; // 当前选中的日期范围
     let customStartDate = null;
     let customEndDate = null;
@@ -2843,6 +2936,137 @@
       }
     }
 
+    // ========== 曲线对比图表 ==========
+    const curveColors = {
+      today: { border: '#1DB954', bg: 'rgba(29, 185, 84, 0.1)' },
+      yesterday: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+      last7days: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
+    };
+
+    const curveLabels = {
+      today: '今天',
+      yesterday: '昨天',
+      last7days: '近7天平均'
+    };
+
+    async function fetchCurveData(type) {
+      try {
+        const res = await fetch(`/api/analytics/curve?type=${type}`);
+        return await res.json();
+      } catch (e) {
+        console.error(`Failed to fetch curve data for ${type}:`, e);
+        return null;
+      }
+    }
+
+    async function updateCurveChart() {
+      const types = ['today', 'yesterday', 'last7days'];
+      const selectedTypes = types.filter(t =>
+        document.getElementById(`curve-${t}`).checked
+      );
+
+      if (selectedTypes.length === 0) {
+        if (curveChart) {
+          curveChart.data.datasets = [];
+          curveChart.update('none');
+        }
+        return;
+      }
+
+      // 并行获取所有选中的数据
+      const dataPromises = selectedTypes.map(t => fetchCurveData(t));
+      const results = await Promise.all(dataPromises);
+
+      const datasets = [];
+      results.forEach((result, idx) => {
+        if (!result || !result.data) return;
+
+        const type = selectedTypes[idx];
+        const color = curveColors[type];
+
+        datasets.push({
+          label: curveLabels[type],
+          data: result.data.map(d => d.value),
+          borderColor: color.border,
+          backgroundColor: color.bg,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4, // 平滑曲线
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: color.border,
+          spanGaps: true // 跳过 null 值
+        });
+      });
+
+      const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+
+      const ctx = document.getElementById('curve-chart').getContext('2d');
+
+      if (!curveChart) {
+        curveChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                  color: '#888',
+                  usePointStyle: true,
+                  pointStyle: 'circle',
+                  padding: 20
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                padding: 12,
+                cornerRadius: 8,
+                callbacks: {
+                  label: function(context) {
+                    const value = context.parsed.y;
+                    if (value === null) return `${context.dataset.label}: 无数据`;
+                    return `${context.dataset.label}: ${value.toLocaleString()}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: {
+                  color: '#888',
+                  maxRotation: 0,
+                  callback: function(value, index) {
+                    // 每3小时显示一个标签
+                    return index % 3 === 0 ? this.getLabelForValue(value) : '';
+                  }
+                }
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#888' },
+                beginAtZero: false
+              }
+            }
+          }
+        });
+      } else {
+        curveChart.data.labels = labels;
+        curveChart.data.datasets = datasets;
+        curveChart.update('none');
+      }
+    }
+
     // 加载时段排行
     async function loadHourlyRanking() {
       try {
@@ -3246,6 +3470,7 @@
       await Promise.all([
         loadHeroSection(),
         loadMainChart(),
+        updateCurveChart(),
         loadHourlyRanking(),
         checkStatus()
       ]);
