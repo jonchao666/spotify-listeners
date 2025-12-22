@@ -1839,7 +1839,31 @@
         </div>
       </div>
 
-      <div style="font-size: 11px; color: var(--text-tertiary); margin-bottom: 12px;">
+      <!-- 定时报告设置 -->
+      <div class="form-group" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+        <label class="form-label" style="margin-bottom: 12px;">📊 定时数据报告</label>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="form-checkbox">
+            <input type="checkbox" id="report-daily">
+            <span>每日报告 <span style="color: var(--text-tertiary);">(每天 UTC 0:00 发送前一天数据)</span></span>
+          </label>
+          <label class="form-checkbox">
+            <input type="checkbox" id="report-weekly">
+            <span>每周报告 <span style="color: var(--text-tertiary);">(每周一发送上周数据)</span></span>
+          </label>
+          <label class="form-checkbox">
+            <input type="checkbox" id="report-monthly">
+            <span>每月报告 <span style="color: var(--text-tertiary);">(每月1号发送上月数据)</span></span>
+          </label>
+        </div>
+        <div style="margin-top: 12px;">
+          <button type="button" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="testReport('daily')">预览日报</button>
+          <button type="button" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="testReport('weekly')">预览周报</button>
+          <button type="button" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="testReport('monthly')">预览月报</button>
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-tertiary); margin: 12px 0;">
         修改仅在当前会话有效，永久修改请编辑 .env 文件
       </div>
 
@@ -3100,6 +3124,12 @@
         const provider = config.provider || 'resend';
         switchProvider(provider);
 
+        // 加载定时报告设置
+        const reports = config.reports || {};
+        document.getElementById('report-daily').checked = reports.daily || false;
+        document.getElementById('report-weekly').checked = reports.weekly || false;
+        document.getElementById('report-monthly').checked = reports.monthly || false;
+
         // 更新状态显示
         const statusEl = document.getElementById('email-status');
         const isResend = provider === 'resend';
@@ -3128,7 +3158,13 @@
         const config = {
           enabled: document.getElementById('email-enabled').checked,
           provider: currentEmailProvider,
-          to: document.getElementById('email-to').value || undefined
+          to: document.getElementById('email-to').value || undefined,
+          // 定时报告设置
+          reports: {
+            daily: document.getElementById('report-daily').checked,
+            weekly: document.getElementById('report-weekly').checked,
+            monthly: document.getElementById('report-monthly').checked
+          }
         };
 
         if (currentEmailProvider === 'resend') {
@@ -3180,6 +3216,28 @@
         }
       } catch (e) {
         alert(t('email.testFail') + ': ' + e.message);
+      }
+    }
+
+    async function testReport(type) {
+      const typeNames = { daily: '每日', weekly: '每周', monthly: '每月' };
+      if (!confirm(`确定发送${typeNames[type]}报告预览到您的邮箱？`)) return;
+
+      try {
+        const res = await fetch('/api/email/report/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          alert(`${typeNames[type]}报告已发送，请检查邮箱`);
+        } else {
+          alert('发送失败: ' + result.message);
+        }
+      } catch (e) {
+        alert('发送失败: ' + e.message);
       }
     }
 

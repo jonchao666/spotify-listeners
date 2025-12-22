@@ -26,7 +26,13 @@ const CONFIG = {
     pass: process.env.EMAIL_PASS || '',
     // 通用配置
     to: process.env.EMAIL_TO || '',
-    from: process.env.EMAIL_FROM || 'Spotify Tracker <onboarding@resend.dev>'
+    from: process.env.EMAIL_FROM || 'Spotify Tracker <onboarding@resend.dev>',
+    // 定时报告配置
+    reports: {
+      daily: process.env.EMAIL_REPORT_DAILY === 'true',   // 每日报告
+      weekly: process.env.EMAIL_REPORT_WEEKLY === 'true', // 每周报告 (周一)
+      monthly: process.env.EMAIL_REPORT_MONTHLY === 'true' // 每月报告 (1号)
+    }
   }
 };
 
@@ -173,6 +179,223 @@ async function sendEmailNotification(subject, message, skipCooldown = false) {
   } catch (e) {
     console.error('发送邮件失败:', e.message);
     return { success: false, error: e.message };
+  }
+}
+
+// ========== 定时统计报告 ==========
+
+// 获取指定时间段的统计数据
+function getStatsForPeriod(startDate, endDate) {
+  if (!db) return null;
+
+  try {
+    const result = db.exec(`
+      SELECT
+        AVG(listener_count) as avgCount,
+        MAX(listener_count) as maxCount,
+        MIN(listener_count) as minCount,
+        COUNT(*) as samples
+      FROM listeners
+      WHERE timestamp >= ? AND timestamp < ?
+    `, [startDate, endDate]);
+
+    if (result.length === 0 || result[0].values.length === 0) {
+      return null;
+    }
+
+    const row = result[0].values[0];
+    return {
+      avgCount: Math.round(row[0] * 10) / 10,
+      maxCount: row[1],
+      minCount: row[2],
+      samples: row[3],
+      predictedStreams: Math.round((row[0] * 24 * 60) / 3)
+    };
+  } catch (e) {
+    console.error('获取统计数据失败:', e.message);
+    return null;
+  }
+}
+
+// 生成统计报告 HTML
+function generateReportHtml(title, periodLabel, stats, comparison = null) {
+  const formatNum = n => n ? n.toLocaleString() : '0';
+
+  let comparisonHtml = '';
+  if (comparison) {
+    const avgDiff = stats.avgCount - comparison.avgCount;
+    const avgPercent = comparison.avgCount ? ((avgDiff / comparison.avgCount) * 100).toFixed(1) : 0;
+    const trend = avgDiff >= 0 ? '📈' : '📉';
+    const color = avgDiff >= 0 ? '#1DB954' : '#e74c3c';
+
+    comparisonHtml = `
+      <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin-top: 15px;">
+        <h4 style="margin: 0 0 10px 0; color: #666;">对比上期</h4>
+        <p style="margin: 5px 0; color: ${color}; font-size: 16px;">
+          ${trend} 平均听众 ${avgDiff >= 0 ? '+' : ''}${formatNum(Math.round(avgDiff * 10) / 10)} (${avgDiff >= 0 ? '+' : ''}${avgPercent}%)
+        </p>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #1DB954; margin-bottom: 5px;">🎵 ${title}</h2>
+      <p style="color: #888; margin-top: 0; font-size: 14px;">${periodLabel}</p>
+
+      <div style="background: #1DB954; color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 20px 0;">
+        <div style="font-size: 14px; opacity: 0.9;">平均听众</div>
+        <div style="font-size: 42px; font-weight: bold;">${formatNum(stats.avgCount)}</div>
+      </div>
+
+      <div style="display: flex; gap: 15px; margin: 20px 0;">
+        <div style="flex: 1; background: #f5f5f5; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="color: #888; font-size: 12px;">峰值</div>
+          <div style="color: #1DB954; font-size: 24px; font-weight: bold;">${formatNum(stats.maxCount)}</div>
+        </div>
+        <div style="flex: 1; background: #f5f5f5; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="color: #888; font-size: 12px;">最低</div>
+          <div style="color: #333; font-size: 24px; font-weight: bold;">${formatNum(stats.minCount)}</div>
+        </div>
+        <div style="flex: 1; background: #f5f5f5; padding: 15px; border-radius: 8px; text-align: center;">
+          <div style="color: #888; font-size: 12px;">预测播放</div>
+          <div style="color: #333; font-size: 24px; font-weight: bold;">${formatNum(stats.predictedStreams)}</div>
+        </div>
+      </div>
+
+      ${comparisonHtml}
+
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 25px 0;">
+      <p style="color: #888; font-size: 11px; text-align: center;">
+        此报告由 Spotify Listener Tracker 自动发送<br>
+        数据采样点: ${formatNum(stats.samples)} | 生成时间: ${new Date().toISOString()}
+      </p>
+    </div>
+  `;
+}
+
+// 发送定时报告
+async function sendScheduledReport(type) {
+  if (!CONFIG.email.enabled || !CONFIG.email.to) {
+    return;
+  }
+
+  const now = new Date();
+  let title, periodLabel, startDate, endDate, prevStartDate, prevEndDate;
+
+  if (type === 'daily') {
+    // 昨天的数据
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    startDate = yesterday.toISOString().split('T')[0] + 'T00:00:00Z';
+    endDate = now.toISOString().split('T')[0] + 'T00:00:00Z';
+
+    const dayBefore = new Date(yesterday);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    prevStartDate = dayBefore.toISOString().split('T')[0] + 'T00:00:00Z';
+    prevEndDate = startDate;
+
+    title = '每日数据报告';
+    periodLabel = `${yesterday.toISOString().split('T')[0]} (UTC)`;
+
+  } else if (type === 'weekly') {
+    // 上周的数据 (周一到周日)
+    const lastMonday = new Date(now);
+    lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() - 6);
+    const lastSunday = new Date(lastMonday);
+    lastSunday.setDate(lastSunday.getDate() + 7);
+
+    startDate = lastMonday.toISOString().split('T')[0] + 'T00:00:00Z';
+    endDate = lastSunday.toISOString().split('T')[0] + 'T00:00:00Z';
+
+    const prevMonday = new Date(lastMonday);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    prevStartDate = prevMonday.toISOString().split('T')[0] + 'T00:00:00Z';
+    prevEndDate = startDate;
+
+    title = '每周数据报告';
+    periodLabel = `${lastMonday.toISOString().split('T')[0]} ~ ${new Date(lastSunday.getTime() - 86400000).toISOString().split('T')[0]}`;
+
+  } else if (type === 'monthly') {
+    // 上个月的数据
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    startDate = lastMonth.toISOString().split('T')[0] + 'T00:00:00Z';
+    endDate = thisMonth.toISOString().split('T')[0] + 'T00:00:00Z';
+
+    const prevMonth = new Date(lastMonth);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    prevStartDate = prevMonth.toISOString().split('T')[0] + 'T00:00:00Z';
+    prevEndDate = startDate;
+
+    title = '每月数据报告';
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    periodLabel = `${lastMonth.getFullYear()}年${monthNames[lastMonth.getMonth()]}`;
+  }
+
+  const stats = getStatsForPeriod(startDate, endDate);
+  if (!stats || stats.samples === 0) {
+    console.log(`${type} 报告: 没有数据，跳过发送`);
+    return;
+  }
+
+  const comparison = getStatsForPeriod(prevStartDate, prevEndDate);
+  const htmlContent = generateReportHtml(title, periodLabel, stats, comparison);
+
+  try {
+    if (CONFIG.email.provider === 'resend') {
+      await sendWithResend(title, htmlContent);
+    } else {
+      await sendWithSmtp(title, htmlContent);
+    }
+    console.log(`${type} 报告已发送`);
+  } catch (e) {
+    console.error(`${type} 报告发送失败:`, e.message);
+  }
+}
+
+// 报告调度器状态
+let lastReportCheck = null;
+
+// 检查并发送定时报告
+function checkAndSendReports() {
+  if (!CONFIG.email.enabled || !CONFIG.email.reports) {
+    return;
+  }
+
+  const now = new Date();
+  const hour = now.getUTCHours();
+  const dayOfWeek = now.getUTCDay(); // 0=周日, 1=周一
+  const dayOfMonth = now.getUTCDate();
+  const today = now.toISOString().split('T')[0];
+
+  // 防止同一天重复发送
+  if (lastReportCheck === today) {
+    return;
+  }
+
+  // 只在 UTC 0:00-0:59 之间检查
+  if (hour !== 0) {
+    return;
+  }
+
+  console.log('检查定时报告...');
+  lastReportCheck = today;
+
+  // 每日报告
+  if (CONFIG.email.reports.daily) {
+    sendScheduledReport('daily');
+  }
+
+  // 每周报告 (周一)
+  if (CONFIG.email.reports.weekly && dayOfWeek === 1) {
+    sendScheduledReport('weekly');
+  }
+
+  // 每月报告 (1号)
+  if (CONFIG.email.reports.monthly && dayOfMonth === 1) {
+    sendScheduledReport('monthly');
   }
 }
 
@@ -796,7 +1019,7 @@ function startServer() {
 
       const dailyData = result[0].values.map(row => ({
         date: row[0],
-        avgCount: Math.round(row[1]),
+        avgCount: Math.round(row[1] * 10) / 10, // 保留一位小数
         maxCount: row[2],
         minCount: row[3],
         samples: row[4]
@@ -833,7 +1056,7 @@ function startServer() {
 
       const dailyData = result[0].values.map(row => ({
         date: row[0],
-        avgCount: Math.round(row[1]),
+        avgCount: Math.round(row[1] * 10) / 10, // 保留一位小数
         maxCount: row[2],
         minCount: row[3],
         samples: row[4],
@@ -869,14 +1092,16 @@ function startServer() {
       to: CONFIG.email.to ? CONFIG.email.to.replace(/(.{2}).*(@.*)/, '$1***$2') : '',
       from: CONFIG.email.from,
       lastEmailSent: lastEmailSent ? new Date(lastEmailSent).toISOString() : null,
-      cooldownMinutes: EMAIL_COOLDOWN / 60000
+      cooldownMinutes: EMAIL_COOLDOWN / 60000,
+      // 定时报告
+      reports: CONFIG.email.reports || { daily: false, weekly: false, monthly: false }
     });
   });
 
   // 更新邮件配置
   app.post('/api/email/config', (req, res) => {
     try {
-      const { enabled, provider, resendApiKey, host, port, secure, user, pass, to, from } = req.body;
+      const { enabled, provider, resendApiKey, host, port, secure, user, pass, to, from, reports } = req.body;
 
       // 更新内存中的配置
       if (typeof enabled === 'boolean') CONFIG.email.enabled = enabled;
@@ -890,14 +1115,38 @@ function startServer() {
       if (to) CONFIG.email.to = to;
       if (from) CONFIG.email.from = from;
 
+      // 更新报告配置
+      if (reports) {
+        if (!CONFIG.email.reports) CONFIG.email.reports = {};
+        if (typeof reports.daily === 'boolean') CONFIG.email.reports.daily = reports.daily;
+        if (typeof reports.weekly === 'boolean') CONFIG.email.reports.weekly = reports.weekly;
+        if (typeof reports.monthly === 'boolean') CONFIG.email.reports.monthly = reports.monthly;
+      }
+
       res.json({
         success: true,
         message: '邮件配置已更新 (仅当前会话有效，重启后需要修改 .env 文件)',
         config: {
           enabled: CONFIG.email.enabled,
-          provider: CONFIG.email.provider
+          provider: CONFIG.email.provider,
+          reports: CONFIG.email.reports
         }
       });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // 预览/测试定时报告
+  app.post('/api/email/report/test', async (req, res) => {
+    try {
+      const { type } = req.body; // 'daily', 'weekly', 'monthly'
+      if (!['daily', 'weekly', 'monthly'].includes(type)) {
+        return res.status(400).json({ success: false, message: '无效的报告类型' });
+      }
+
+      await sendScheduledReport(type);
+      res.json({ success: true, message: `${type} 报告已发送` });
     } catch (e) {
       res.status(500).json({ success: false, message: e.message });
     }
@@ -2434,8 +2683,12 @@ function startScraping() {
   // 立即执行一次
   scrapeWithRecovery();
 
-  // 定时执行
+  // 定时执行抓取
   setInterval(scrapeWithRecovery, CONFIG.scrapeInterval);
+
+  // 定时检查报告 (每5分钟检查一次)
+  setInterval(checkAndSendReports, 5 * 60 * 1000);
+  console.log('定时报告检查已启动 (每5分钟检查一次)');
 }
 
 // 初始化并启动
