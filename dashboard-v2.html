@@ -346,6 +346,10 @@
       font-size: 14px;
       font-weight: 600;
       color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 8px;
     }
 
     .hourly-regions {
@@ -402,7 +406,7 @@
 
     .daily-row {
       display: grid;
-      grid-template-columns: 120px 1fr 1fr 1fr 100px;
+      grid-template-columns: 120px 1fr 1fr 1fr;
       padding: 14px 20px;
       border-bottom: 1px solid var(--border-color);
       align-items: center;
@@ -443,12 +447,6 @@
       color: var(--spotify-green);
     }
 
-    .daily-samples {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      text-align: right;
-    }
-
     .load-more-btn {
       width: 100%;
       padding: 16px;
@@ -477,9 +475,6 @@
     @media (max-width: 768px) {
       .daily-row {
         grid-template-columns: 90px 1fr 1fr 1fr;
-      }
-      .daily-samples {
-        display: none;
       }
     }
 
@@ -831,6 +826,61 @@
 
     .custom-date-apply:hover {
       background: #1ed760;
+    }
+
+    /* 图表统计摘要 */
+    .chart-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .chart-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chart-stat-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .chart-stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-stat-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .chart-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-stat-value.peak {
+      color: var(--spotify-green);
+    }
+
+    @media (max-width: 600px) {
+      .chart-stats {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
     }
 
     /* 关键指标网格 - 保留用于fallback */
@@ -1617,6 +1667,8 @@
         <div class="chart-container">
           <canvas id="main-chart"></canvas>
         </div>
+        <!-- 图表统计摘要 -->
+        <div class="chart-stats" id="chart-stats"></div>
       </div>
     </section>
 
@@ -2659,6 +2711,39 @@
           const modeText = chartType === 'smooth' ? (currentLang === 'zh' ? '平滑' : 'Smooth') : (currentLang === 'zh' ? '原始' : 'Raw');
           subtitle.textContent = `${rangeText} · ${pointCount.toLocaleString()} ${currentLang === 'zh' ? '数据点' : 'points'} · ${modeText} (UTC)`;
         }
+
+        // 更新图表统计摘要
+        const chartStats = document.getElementById('chart-stats');
+        if (chartStats && allData.length > 0) {
+          const allValues = allData.map(d => d.listenerCount);
+          const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+          const peak = Math.max(...allValues);
+          const min = Math.min(...allValues);
+
+          chartStats.innerHTML = `
+            <div class="chart-stat-item">
+              <div class="chart-stat-icon">📊</div>
+              <div class="chart-stat-info">
+                <span class="chart-stat-label">${currentLang === 'zh' ? '平均' : 'Average'}</span>
+                <span class="chart-stat-value">${avg.toFixed(1)}</span>
+              </div>
+            </div>
+            <div class="chart-stat-item">
+              <div class="chart-stat-icon">📈</div>
+              <div class="chart-stat-info">
+                <span class="chart-stat-label">${currentLang === 'zh' ? '峰值' : 'Peak'}</span>
+                <span class="chart-stat-value peak">${peak.toLocaleString()}</span>
+              </div>
+            </div>
+            <div class="chart-stat-item">
+              <div class="chart-stat-icon">📉</div>
+              <div class="chart-stat-info">
+                <span class="chart-stat-label">${currentLang === 'zh' ? '最低' : 'Minimum'}</span>
+                <span class="chart-stat-value">${min.toLocaleString()}</span>
+              </div>
+            </div>
+          `;
+        }
       } catch (e) {
         console.error('Failed to load main chart:', e);
       }
@@ -2846,10 +2931,9 @@
         const rows = result.data.map(d => `
           <div class="daily-row">
             <div class="daily-date">${d.date}</div>
-            <div class="daily-value">${d.avgCount.toLocaleString()}</div>
+            <div class="daily-value">${d.avgCount.toFixed(1)}</div>
             <div class="daily-value">${d.maxCount.toLocaleString()}</div>
             <div class="daily-streams">${d.predictedStreams.toLocaleString()}</div>
-            <div class="daily-samples">${d.samples.toLocaleString()}</div>
           </div>
         `).join('');
 
@@ -2866,7 +2950,6 @@
                 <div>${t('daily.avg')}</div>
                 <div>${t('daily.peak')}</div>
                 <div>${t('daily.streams')}</div>
-                <div>${t('daily.samples')}</div>
               </div>
               ${rows}
             </div>
