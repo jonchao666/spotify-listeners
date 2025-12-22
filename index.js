@@ -125,27 +125,28 @@ async function sendWithSmtp(subject, htmlContent) {
   return true;
 }
 
-// 发送邮件通知
-async function sendEmailNotification(subject, message) {
-  if (!CONFIG.email.enabled || !CONFIG.email.to) {
-    return false;
+// 发送邮件通知 (返回 { success, error } 对象)
+async function sendEmailNotification(subject, message, skipCooldown = false) {
+  if (!CONFIG.email.enabled) {
+    return { success: false, error: '邮件通知未启用' };
+  }
+  if (!CONFIG.email.to) {
+    return { success: false, error: '未配置接收邮箱' };
   }
 
   // 验证必要配置
   const isResend = CONFIG.email.provider === 'resend';
   if (isResend && !CONFIG.email.resendApiKey) {
-    console.log('Resend API Key 未配置');
-    return false;
+    return { success: false, error: 'Resend API Key 未配置' };
   }
   if (!isResend && !CONFIG.email.user) {
-    console.log('SMTP 用户未配置');
-    return false;
+    return { success: false, error: 'SMTP 发件邮箱未配置' };
   }
 
-  // 检查冷却时间
-  if (lastEmailSent && (Date.now() - lastEmailSent) < EMAIL_COOLDOWN) {
-    console.log('邮件通知冷却中，跳过发送');
-    return false;
+  // 检查冷却时间 (测试邮件可跳过)
+  if (!skipCooldown && lastEmailSent && (Date.now() - lastEmailSent) < EMAIL_COOLDOWN) {
+    const remainingMin = Math.ceil((EMAIL_COOLDOWN - (Date.now() - lastEmailSent)) / 60000);
+    return { success: false, error: `冷却中，${remainingMin}分钟后可再次发送` };
   }
 
   try {
@@ -159,10 +160,10 @@ async function sendEmailNotification(subject, message) {
 
     lastEmailSent = Date.now();
     console.log(`邮件通知已发送 (${CONFIG.email.provider}):`, subject);
-    return true;
+    return { success: true };
   } catch (e) {
     console.error('发送邮件失败:', e.message);
-    return false;
+    return { success: false, error: e.message };
   }
 }
 
@@ -898,18 +899,14 @@ function startServer() {
     try {
       const result = await sendEmailNotification(
         '测试邮件',
-        '这是一封测试邮件，如果您收到此邮件，说明邮件通知功能配置正确！'
+        '这是一封测试邮件，如果您收到此邮件，说明邮件通知功能配置正确！',
+        true // 跳过冷却时间
       );
 
-      if (result) {
+      if (result.success) {
         res.json({ success: true, message: '测试邮件已发送，请检查收件箱' });
       } else {
-        res.json({
-          success: false,
-          message: CONFIG.email.enabled
-            ? '发送失败，请检查邮件配置或查看服务器日志'
-            : '邮件通知未启用，请先在 .env 中启用'
-        });
+        res.json({ success: false, message: result.error || '发送失败' });
       }
     } catch (e) {
       res.status(500).json({ success: false, message: e.message });
