@@ -3240,6 +3240,7 @@
         });
 
         // 显示时间段平均值（来自API）
+        console.log(`Curve ${type} average:`, result.average, typeof result.average);
         if (result.average !== null && result.average !== undefined) {
           statsHtml.push(`
             <div class="curve-stat-item">
