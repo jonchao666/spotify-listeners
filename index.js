@@ -1001,6 +1001,17 @@ function startServer() {
         ORDER BY hour
       `, [startDate, endDate]);
 
+      // 查询整体平均值
+      const avgResult = db.exec(`
+        SELECT AVG(listener_count) as overallAvg
+        FROM listeners
+        WHERE timestamp >= ? AND timestamp < ?
+      `, [startDate, endDate]);
+
+      const overallAvg = avgResult.length > 0 && avgResult[0].values.length > 0 && avgResult[0].values[0][0] !== null
+        ? Math.round(avgResult[0].values[0][0] * 10) / 10
+        : null;
+
       // 生成完整的24小时数据（填充缺失小时为null）
       const hourlyMap = {};
       if (result.length > 0) {
@@ -1017,7 +1028,7 @@ function startServer() {
         });
       }
 
-      res.json({ type, label, data });
+      res.json({ type, label, data, average: overallAvg });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
