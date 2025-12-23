@@ -3240,17 +3240,21 @@
         });
 
         // 计算峰值时段
-        const validData = dataValues.map((v, i) => ({ value: v, hour: i })).filter(d => d.value !== null);
+        const validData = dataValues
+          .map((v, i) => ({ value: v, hour: i }))
+          .filter(d => d.value !== null && d.value !== undefined && !isNaN(d.value));
+
         if (validData.length > 0) {
-          const peak = validData.reduce((max, d) => d.value > max.value ? d : max, validData[0]);
-          const valley = validData.reduce((min, d) => d.value < min.value ? d : min, validData[0]);
-          const avg = validData.reduce((sum, d) => sum + d.value, 0) / validData.length;
+          const peak = validData.reduce((max, d) => Number(d.value) > Number(max.value) ? d : max, validData[0]);
+          const valley = validData.reduce((min, d) => Number(d.value) < Number(min.value) ? d : min, validData[0]);
+          const sum = validData.reduce((acc, d) => acc + Number(d.value), 0);
+          const avg = sum / validData.length;
 
           statsHtml.push(`
             <div class="curve-stat-item">
               <span class="curve-stat-dot" style="background: ${color.border}"></span>
               <span class="curve-stat-label">${curveLabels[type]}:</span>
-              <span class="curve-stat-value">峰值 ${String(peak.hour).padStart(2, '0')}:00 (${peak.value.toLocaleString()}) · 低谷 ${String(valley.hour).padStart(2, '0')}:00 (${valley.value.toLocaleString()}) · 均值 ${avg.toFixed(0)}</span>
+              <span class="curve-stat-value">峰值 ${String(peak.hour).padStart(2, '0')}:00 (${Number(peak.value).toLocaleString()}) · 低谷 ${String(valley.hour).padStart(2, '0')}:00 (${Number(valley.value).toLocaleString()}) · 均值 ${Math.round(avg).toLocaleString()}</span>
             </div>
           `);
         }
