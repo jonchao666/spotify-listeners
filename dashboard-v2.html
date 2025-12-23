@@ -1558,6 +1558,123 @@
       fill: currentColor;
     }
 
+    /* 播放量校准 */
+    .calibration-form {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .calibration-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .calibration-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .calibration-input {
+      padding: 10px 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      min-width: 160px;
+    }
+
+    .calibration-input:focus {
+      outline: none;
+      border-color: var(--spotify-green);
+    }
+
+    .calibration-btn {
+      padding: 10px 24px;
+      background: var(--spotify-green);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .calibration-btn:hover {
+      background: var(--spotify-green-dark);
+    }
+
+    .calibration-factor {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .factor-label {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .factor-value {
+      color: var(--spotify-green);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .calibration-history {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .calibration-record {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+
+    .calibration-record-info {
+      display: flex;
+      gap: 24px;
+    }
+
+    .calibration-record-date {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .calibration-record-streams {
+      color: var(--text-secondary);
+    }
+
+    .calibration-record-delete {
+      padding: 4px 8px;
+      background: transparent;
+      border: 1px solid var(--danger);
+      border-radius: 4px;
+      color: var(--danger);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .calibration-record-delete:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
     /* 页脚 */
     .footer {
       text-align: center;
@@ -2172,6 +2289,34 @@
       </div>
     </section>
 
+    <!-- ========== 播放量校准 ========== -->
+    <section class="section" id="calibration-section">
+      <div class="section-header">
+        <h2 class="section-title">播放量校准</h2>
+        <p class="section-subtitle">输入真实播放量数据，提高预测准确度</p>
+      </div>
+      <div class="card">
+        <div class="calibration-form">
+          <div class="calibration-input-group">
+            <label class="calibration-label">日期</label>
+            <input type="date" id="calibration-date" class="calibration-input">
+          </div>
+          <div class="calibration-input-group">
+            <label class="calibration-label">真实播放量</label>
+            <input type="number" id="calibration-streams" class="calibration-input" placeholder="从 Spotify for Artists 获取">
+          </div>
+          <button onclick="saveActualStreams()" class="calibration-btn">保存</button>
+        </div>
+        <div class="calibration-factor" id="calibration-factor">
+          <span class="factor-label">校准系数:</span>
+          <span class="factor-value" id="factor-value">计算中...</span>
+        </div>
+        <div class="calibration-history" id="calibration-history">
+          <!-- 历史记录将在这里动态加载 -->
+        </div>
+      </div>
+    </section>
+
     <!-- 页脚 -->
     <footer class="footer" data-i18n="footer">
       Spotify 实时分析 · Powered by Claude Code
@@ -2762,14 +2907,16 @@
     // 加载数据概览（整合所有数据展示，独立获取数据）
     async function loadHeroSection() {
       try {
-        // 获取统计数据和足够多的历史数据
-        const [statsRes, heroDataRes] = await Promise.all([
+        // 获取统计数据、历史数据和校准系数
+        const [statsRes, heroDataRes, factorRes] = await Promise.all([
           fetch('/api/stats'),
-          fetch('/api/data?limit=250000')
+          fetch('/api/data?limit=250000'),
+          fetch('/api/prediction-factor')
         ]);
 
         const stats = await statsRes.json();
         const heroData = await heroDataRes.json();
+        const factorData = await factorRes.json();
 
         if (!stats || stats.totalRecords === 0) {
           document.getElementById('hero-content').innerHTML = `<div class="loading">${t('na')}</div>`;
@@ -2786,9 +2933,27 @@
         const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
         const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
 
-        // 今日预测播放量
+        // 今日预测播放量 (使用校准系数 + 时间加权)
         const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
-        const predictedStreams = hoursElapsedUTC > 0 ? Math.round((todayAvg * 24 * 60) / 3) : 0;
+        const calibrationFactor = factorData.factor || 480; // 默认值: 24*60/3 = 480
+
+        // 时间加权预测: 考虑已过时段和剩余时段
+        let predictedStreams = 0;
+        if (hoursElapsedUTC > 0 && todayValues.length > 0) {
+          // 已过时段的贡献 (实际数据)
+          const elapsedContribution = todayAvg * hoursElapsedUTC * (calibrationFactor / 24);
+          // 剩余时段的贡献 (基于当前趋势预测)
+          const remainingHours = 24 - hoursElapsedUTC;
+          // 使用最近1小时的数据权重更高
+          const recentData = todayData.slice(-720); // 最近1小时(5秒间隔)
+          const recentAvg = recentData.length > 0
+            ? recentData.reduce((s, d) => s + d.listenerCount, 0) / recentData.length
+            : todayAvg;
+          // 加权平均: 70%最近趋势 + 30%全天平均
+          const projectedAvg = recentAvg * 0.7 + todayAvg * 0.3;
+          const remainingContribution = projectedAvg * remainingHours * (calibrationFactor / 24);
+          predictedStreams = Math.round(elapsedContribution + remainingContribution);
+        }
 
         // 对比1小时前
         const data1h = heroData.slice(-720);
@@ -2816,8 +2981,8 @@
         const overallPeak = Math.max(...allValues);
 
         // === 计算各时期预测每日播放量 ===
-        // 公式: 平均听众 * 24小时 * 60分钟 / 3分钟(每首歌) = 每日播放
-        const calcDailyStreams = (avg) => avg ? Math.round((avg * 24 * 60) / 3) : null;
+        // 使用校准系数 (calibrationFactor = 实际播放 / 平均听众)
+        const calcDailyStreams = (avg) => avg ? Math.round(avg * calibrationFactor) : null;
         const thisWeekDailyStreams = calcDailyStreams(thisWeekAvg);
         const thisMonthDailyStreams = calcDailyStreams(thisMonthAvg);
         const overallDailyStreams = calcDailyStreams(overallAvg);
@@ -3484,6 +3649,98 @@
       }
     }
 
+    // ========== 播放量校准 ==========
+
+    // 加载校准数据
+    async function loadCalibrationData() {
+      try {
+        // 加载历史记录
+        const historyRes = await fetch('/api/actual-streams');
+        const history = await historyRes.json();
+
+        const historyContainer = document.getElementById('calibration-history');
+        if (history.length === 0) {
+          historyContainer.innerHTML = '<div style="color: var(--text-tertiary); font-size: 13px;">暂无记录，请输入真实播放量数据</div>';
+        } else {
+          historyContainer.innerHTML = history.map(item => `
+            <div class="calibration-record">
+              <div class="calibration-record-info">
+                <span class="calibration-record-date">${item.date}</span>
+                <span class="calibration-record-streams">${item.streams.toLocaleString()} 次播放</span>
+              </div>
+              <button class="calibration-record-delete" onclick="deleteActualStreams('${item.date}')">删除</button>
+            </div>
+          `).join('');
+        }
+
+        // 加载校准系数
+        const factorRes = await fetch('/api/prediction-factor');
+        const factorData = await factorRes.json();
+
+        const factorEl = document.getElementById('factor-value');
+        if (factorData.factor !== null) {
+          factorEl.textContent = `${factorData.factor} (${factorData.message})`;
+        } else {
+          factorEl.textContent = factorData.message || '暂无数据';
+          factorEl.style.color = 'var(--text-secondary)';
+        }
+
+        // 设置默认日期为昨天
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('calibration-date').value = yesterday.toISOString().split('T')[0];
+
+      } catch (e) {
+        console.error('Failed to load calibration data:', e);
+      }
+    }
+
+    // 保存真实播放量
+    async function saveActualStreams() {
+      const date = document.getElementById('calibration-date').value;
+      const streams = document.getElementById('calibration-streams').value;
+
+      if (!date || !streams) {
+        alert('请填写日期和播放量');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/actual-streams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, streams: parseInt(streams) })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('calibration-streams').value = '';
+          await loadCalibrationData();
+        } else {
+          alert('保存失败: ' + data.error);
+        }
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    // 删除真实播放量记录
+    async function deleteActualStreams(date) {
+      if (!confirm(`确定删除 ${date} 的记录吗？`)) return;
+
+      try {
+        const res = await fetch(`/api/actual-streams/${date}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          await loadCalibrationData();
+        } else {
+          alert('删除失败: ' + data.error);
+        }
+      } catch (e) {
+        alert('删除失败: ' + e.message);
+      }
+    }
+
     // ========== 每日数据表格 ==========
     let dailyDataOffset = 0;
     let dailyDataHasMore = true;
@@ -3783,6 +4040,8 @@
       await refresh();
       // 每日数据只在初始化时加载一次，不需要频繁刷新
       await loadDailyData();
+      // 加载校准数据
+      await loadCalibrationData();
     }
 
     // 自动刷新（每5秒）

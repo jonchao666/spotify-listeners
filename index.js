@@ -204,16 +204,66 @@ function getStatsForPeriod(startDate, endDate) {
     }
 
     const row = result[0].values[0];
+    const calibrationFactor = getCalibrationFactor();
     return {
       avgCount: Math.round(row[0] * 10) / 10,
       maxCount: row[1],
       minCount: row[2],
       samples: row[3],
-      predictedStreams: Math.round((row[0] * 24 * 60) / 3)
+      predictedStreams: Math.round(row[0] * calibrationFactor)
     };
   } catch (e) {
     console.error('获取统计数据失败:', e.message);
     return null;
+  }
+}
+
+// 获取校准系数 (从真实播放量数据计算)
+function getCalibrationFactor() {
+  if (!db) return 480; // 默认值: 24*60/3
+
+  try {
+    // 获取有真实播放量的日期
+    const actualResult = db.exec('SELECT date, streams FROM actual_streams');
+    if (actualResult.length === 0 || actualResult[0].values.length === 0) {
+      return 480; // 无数据时使用默认值
+    }
+
+    const actualData = {};
+    actualResult[0].values.forEach(row => {
+      actualData[row[0]] = row[1];
+    });
+
+    // 获取对应日期的平均听众数
+    const dates = Object.keys(actualData);
+    let totalFactor = 0;
+    let validSamples = 0;
+
+    dates.forEach(date => {
+      const listenerResult = db.exec(`
+        SELECT AVG(listener_count) as avgCount
+        FROM listeners
+        WHERE DATE(timestamp) = ?
+      `, [date]);
+
+      if (listenerResult.length > 0 && listenerResult[0].values.length > 0 && listenerResult[0].values[0][0]) {
+        const avgListeners = listenerResult[0].values[0][0];
+        const actualStreams = actualData[date];
+        // 计算系数: 真实播放量 / 平均听众
+        const factor = actualStreams / avgListeners;
+        totalFactor += factor;
+        validSamples++;
+      }
+    });
+
+    if (validSamples === 0) {
+      return 480; // 无有效样本时使用默认值
+    }
+
+    return totalFactor / validSamples;
+  } catch (e) {
+    console.error('获取校准系数失败:', e.message);
+    return 480;
   }
 }
 
@@ -423,6 +473,15 @@ async function initDatabase() {
     `);
 
     db.run('CREATE INDEX IF NOT EXISTS idx_timestamp ON listeners(timestamp)');
+
+    // 创建真实播放量表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS actual_streams (
+        date TEXT PRIMARY KEY,
+        streams INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     const result = db.exec('SELECT COUNT(*) as count FROM listeners');
     const count = result.length > 0 ? result[0].values[0][0] : 0;
@@ -1149,6 +1208,9 @@ function startServer() {
       const limit = parseInt(req.query.limit) || 30;
       const offset = parseInt(req.query.offset) || 0;
 
+      // 获取校准系数
+      const calibrationFactor = getCalibrationFactor();
+
       const result = db.exec(`
         SELECT
           DATE(timestamp) as date,
@@ -1172,8 +1234,8 @@ function startServer() {
         maxCount: row[2],
         minCount: row[3],
         samples: row[4],
-        // 预测播放量: 平均听众 * 24小时 * 60分钟 / 3分钟(每首歌)
-        predictedStreams: Math.round((row[1] * 24 * 60) / 3)
+        // 预测播放量: 使用校准系数
+        predictedStreams: Math.round(row[1] * calibrationFactor)
       }));
 
       // 检查是否还有更多数据
@@ -1182,6 +1244,77 @@ function startServer() {
       const hasMore = (offset + limit) < totalDays;
 
       res.json({ data: dailyData, hasMore, total: totalDays });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ========== 真实播放量管理 ==========
+
+  // 获取所有真实播放量记录
+  app.get('/api/actual-streams', (req, res) => {
+    try {
+      const result = db.exec('SELECT date, streams FROM actual_streams ORDER BY date DESC');
+      if (result.length === 0) {
+        return res.json([]);
+      }
+      const data = result[0].values.map(row => ({
+        date: row[0],
+        streams: row[1]
+      }));
+      res.json(data);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 添加/更新真实播放量
+  app.post('/api/actual-streams', express.json(), (req, res) => {
+    try {
+      const { date, streams } = req.body;
+      if (!date || streams === undefined) {
+        return res.status(400).json({ error: '日期和播放量必填' });
+      }
+
+      // 使用 REPLACE 来实现 upsert
+      db.run('REPLACE INTO actual_streams (date, streams, created_at) VALUES (?, ?, datetime("now"))', [date, parseInt(streams)]);
+      saveDatabaseToFile();
+
+      res.json({ success: true, date, streams: parseInt(streams) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 删除真实播放量记录
+  app.delete('/api/actual-streams/:date', (req, res) => {
+    try {
+      const { date } = req.params;
+      db.run('DELETE FROM actual_streams WHERE date = ?', [date]);
+      saveDatabaseToFile();
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 获取预测校准系数
+  app.get('/api/prediction-factor', (req, res) => {
+    try {
+      // 获取有真实播放量的日期
+      const actualResult = db.exec('SELECT date, streams FROM actual_streams');
+      if (actualResult.length === 0 || actualResult[0].values.length === 0) {
+        return res.json({ factor: null, samples: 0, message: '暂无真实播放量数据' });
+      }
+
+      const factor = getCalibrationFactor();
+      const samples = actualResult[0].values.length;
+
+      res.json({
+        factor: Math.round(factor * 100) / 100, // 保留2位小数
+        samples: samples,
+        message: `基于 ${samples} 天数据计算`
+      });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
