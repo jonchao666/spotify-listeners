@@ -3245,7 +3245,7 @@
             <div class="curve-stat-item">
               <span class="curve-stat-dot" style="background: ${color.border}"></span>
               <span class="curve-stat-label">${curveLabels[type]}:</span>
-              <span class="curve-stat-value">平均 ${Math.round(result.average).toLocaleString()}</span>
+              <span class="curve-stat-value">平均 ${result.average.toFixed(1)}</span>
             </div>
           `);
         }
