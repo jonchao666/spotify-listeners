@@ -3225,8 +3225,13 @@
         const color = curveColors[type];
         const dataValues = result.data.map(d => d.value);
 
+        // 在图例标签中显示平均值
+        const avgText = result.average !== null && result.average !== undefined
+          ? ` (${result.average.toFixed(1)})`
+          : '';
+
         datasets.push({
-          label: curveLabels[type],
+          label: curveLabels[type] + avgText,
           data: dataValues,
           borderColor: color.border,
           backgroundColor: color.bg,
@@ -3238,21 +3243,10 @@
           pointHoverBackgroundColor: color.border,
           spanGaps: true // 跳过 null 值
         });
-
-        // 显示时间段平均值（来自API）
-        if (result.average !== null && result.average !== undefined) {
-          statsHtml.push(`
-            <div class="curve-stat-item">
-              <span class="curve-stat-dot" style="background: ${color.border}"></span>
-              <span class="curve-stat-label">${curveLabels[type]}:</span>
-              <span class="curve-stat-value">平均 ${result.average.toFixed(1)}</span>
-            </div>
-          `);
-        }
       });
 
-      // 更新统计显示
-      statsContainer.innerHTML = statsHtml.join('');
+      // 清空单独的统计显示（已移到图例中）
+      statsContainer.innerHTML = '';
 
       const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
 
