@@ -1015,6 +1015,39 @@
       opacity: 1;
     }
 
+    .curve-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .curve-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .curve-stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .curve-stat-label {
+      color: var(--text-secondary);
+    }
+
+    .curve-stat-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
     /* 关键指标网格 - 保留用于fallback */
     .key-metrics {
       display: grid;
@@ -1929,6 +1962,15 @@
     </section>
 
     <!-- ========== 第二部分：图表区域 ========== -->
+    <!-- ========== 每日数据 ========== -->
+    <section class="section" id="daily-section">
+      <div class="section-header">
+        <h2 class="section-title" data-i18n="section.dailyStats">每日数据</h2>
+        <p class="section-subtitle" data-i18n="section.dailyStatsDesc">历史每日平均、峰值与预测播放量</p>
+      </div>
+      <div id="daily-data"></div>
+    </section>
+
     <!-- ========== 曲线对比 ========== -->
     <section class="section" id="curve-section">
       <div class="section-header">
@@ -1942,7 +1984,7 @@
             <span class="curve-label">今天</span>
           </label>
           <label class="curve-checkbox yesterday">
-            <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()" checked>
+            <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()">
             <span class="curve-label">昨天</span>
           </label>
           <label class="curve-checkbox thisWeek">
@@ -1954,7 +1996,7 @@
             <span class="curve-label">上周</span>
           </label>
           <label class="curve-checkbox last7days">
-            <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()" checked>
+            <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()">
             <span class="curve-label">近7天</span>
           </label>
           <label class="curve-checkbox last28days">
@@ -1982,6 +2024,7 @@
             <span class="curve-label">全部</span>
           </label>
         </div>
+        <div class="curve-stats" id="curve-stats"></div>
         <div class="chart-container">
           <canvas id="curve-chart"></canvas>
         </div>
@@ -2089,15 +2132,6 @@
           <canvas id="main-chart"></canvas>
         </div>
       </div>
-    </section>
-
-    <!-- ========== 每日数据 ========== -->
-    <section class="section" id="daily-section">
-      <div class="section-header">
-        <h2 class="section-title" data-i18n="section.dailyStats">每日数据</h2>
-        <p class="section-subtitle" data-i18n="section.dailyStatsDesc">历史每日平均、峰值与预测播放量</p>
-      </div>
-      <div id="daily-data"></div>
     </section>
 
     <!-- ========== 时段分析 ========== -->
@@ -3163,11 +3197,17 @@
         document.getElementById(`curve-${t}`).checked
       );
 
+      // 保存选择到 localStorage
+      localStorage.setItem('curveSelection', JSON.stringify(selectedTypes));
+
+      const statsContainer = document.getElementById('curve-stats');
+
       if (selectedTypes.length === 0) {
         if (curveChart) {
           curveChart.data.datasets = [];
           curveChart.update('none');
         }
+        statsContainer.innerHTML = '';
         return;
       }
 
@@ -3176,15 +3216,18 @@
       const results = await Promise.all(dataPromises);
 
       const datasets = [];
+      const statsHtml = [];
+
       results.forEach((result, idx) => {
         if (!result || !result.data) return;
 
         const type = selectedTypes[idx];
         const color = curveColors[type];
+        const dataValues = result.data.map(d => d.value);
 
         datasets.push({
           label: curveLabels[type],
-          data: result.data.map(d => d.value),
+          data: dataValues,
           borderColor: color.border,
           backgroundColor: color.bg,
           borderWidth: 2,
@@ -3195,7 +3238,26 @@
           pointHoverBackgroundColor: color.border,
           spanGaps: true // 跳过 null 值
         });
+
+        // 计算峰值时段
+        const validData = dataValues.map((v, i) => ({ value: v, hour: i })).filter(d => d.value !== null);
+        if (validData.length > 0) {
+          const peak = validData.reduce((max, d) => d.value > max.value ? d : max, validData[0]);
+          const valley = validData.reduce((min, d) => d.value < min.value ? d : min, validData[0]);
+          const avg = validData.reduce((sum, d) => sum + d.value, 0) / validData.length;
+
+          statsHtml.push(`
+            <div class="curve-stat-item">
+              <span class="curve-stat-dot" style="background: ${color.border}"></span>
+              <span class="curve-stat-label">${curveLabels[type]}:</span>
+              <span class="curve-stat-value">峰值 ${String(peak.hour).padStart(2, '0')}:00 (${peak.value.toLocaleString()}) · 低谷 ${String(valley.hour).padStart(2, '0')}:00 (${valley.value.toLocaleString()}) · 均值 ${avg.toFixed(0)}</span>
+            </div>
+          `);
+        }
       });
+
+      // 更新统计显示
+      statsContainer.innerHTML = statsHtml.join('');
 
       const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
 
@@ -3700,8 +3762,35 @@
       ]);
     }
 
+    // 恢复曲线选择
+    function restoreCurveSelection() {
+      const saved = localStorage.getItem('curveSelection');
+      const types = ['today', 'yesterday', 'thisWeek', 'lastWeek', 'last7days', 'last28days', 'thisMonth', 'lastMonth', 'thisYear', 'lastYear', 'all'];
+
+      if (saved) {
+        try {
+          const selectedTypes = JSON.parse(saved);
+          types.forEach(t => {
+            const checkbox = document.getElementById(`curve-${t}`);
+            if (checkbox) {
+              checkbox.checked = selectedTypes.includes(t);
+            }
+          });
+        } catch (e) {
+          // 解析失败，使用默认值
+          document.getElementById('curve-yesterday').checked = true;
+          document.getElementById('curve-last7days').checked = true;
+        }
+      } else {
+        // 没有保存的选择，使用默认值
+        document.getElementById('curve-yesterday').checked = true;
+        document.getElementById('curve-last7days').checked = true;
+      }
+    }
+
     // 初始化
     async function init() {
+      restoreCurveSelection();
       await refresh();
       // 每日数据只在初始化时加载一次，不需要频繁刷新
       await loadDailyData();
