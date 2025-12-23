@@ -271,36 +271,6 @@
       margin-bottom: 14px;
     }
 
-    .metric-compare {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      border-top: 1px solid var(--border-color);
-      padding-top: 12px;
-    }
-
-    .metric-compare-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 0;
-      font-size: 12px;
-    }
-
-    .metric-compare-label {
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-
-    .metric-compare-value {
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      text-align: right;
-    }
-
     .metric-change {
       font-size: 11px;
       font-weight: 700;
@@ -1732,10 +1702,6 @@
         font-size: 24px;
       }
 
-      .metric-compare-item {
-        font-size: 11px;
-      }
-
       /* 图表区域 */
       .chart-container {
         height: 280px !important;
@@ -1963,6 +1929,66 @@
     </section>
 
     <!-- ========== 第二部分：图表区域 ========== -->
+    <!-- ========== 曲线对比 ========== -->
+    <section class="section" id="curve-section">
+      <div class="section-header">
+        <h2 class="section-title">曲线对比</h2>
+        <p class="section-subtitle">不同时段的24小时听众分布对比 (UTC)</p>
+      </div>
+      <div class="card">
+        <div class="curve-controls">
+          <label class="curve-checkbox today">
+            <input type="checkbox" id="curve-today" onchange="updateCurveChart()">
+            <span class="curve-label">今天</span>
+          </label>
+          <label class="curve-checkbox yesterday">
+            <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()" checked>
+            <span class="curve-label">昨天</span>
+          </label>
+          <label class="curve-checkbox thisWeek">
+            <input type="checkbox" id="curve-thisWeek" onchange="updateCurveChart()">
+            <span class="curve-label">本周</span>
+          </label>
+          <label class="curve-checkbox lastWeek">
+            <input type="checkbox" id="curve-lastWeek" onchange="updateCurveChart()">
+            <span class="curve-label">上周</span>
+          </label>
+          <label class="curve-checkbox last7days">
+            <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()" checked>
+            <span class="curve-label">近7天</span>
+          </label>
+          <label class="curve-checkbox last28days">
+            <input type="checkbox" id="curve-last28days" onchange="updateCurveChart()">
+            <span class="curve-label">近28天</span>
+          </label>
+          <label class="curve-checkbox thisMonth">
+            <input type="checkbox" id="curve-thisMonth" onchange="updateCurveChart()">
+            <span class="curve-label">本月</span>
+          </label>
+          <label class="curve-checkbox lastMonth">
+            <input type="checkbox" id="curve-lastMonth" onchange="updateCurveChart()">
+            <span class="curve-label">上月</span>
+          </label>
+          <label class="curve-checkbox thisYear">
+            <input type="checkbox" id="curve-thisYear" onchange="updateCurveChart()">
+            <span class="curve-label">今年</span>
+          </label>
+          <label class="curve-checkbox lastYear">
+            <input type="checkbox" id="curve-lastYear" onchange="updateCurveChart()">
+            <span class="curve-label">近一年</span>
+          </label>
+          <label class="curve-checkbox all">
+            <input type="checkbox" id="curve-all" onchange="updateCurveChart()">
+            <span class="curve-label">全部</span>
+          </label>
+        </div>
+        <div class="chart-container">
+          <canvas id="curve-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 听众趋势 ========== -->
     <section class="section">
       <div class="section-header">
         <h2 class="section-title" data-i18n="section.charts">趋势图表</h2>
@@ -2061,65 +2087,6 @@
         <div class="chart-stats" id="chart-stats"></div>
         <div class="chart-container">
           <canvas id="main-chart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== 曲线对比 ========== -->
-    <section class="section" id="curve-section">
-      <div class="section-header">
-        <h2 class="section-title">曲线对比</h2>
-        <p class="section-subtitle">不同时段的24小时听众分布对比 (UTC)</p>
-      </div>
-      <div class="card">
-        <div class="curve-controls">
-          <label class="curve-checkbox today">
-            <input type="checkbox" id="curve-today" onchange="updateCurveChart()">
-            <span class="curve-label">今天</span>
-          </label>
-          <label class="curve-checkbox yesterday">
-            <input type="checkbox" id="curve-yesterday" onchange="updateCurveChart()" checked>
-            <span class="curve-label">昨天</span>
-          </label>
-          <label class="curve-checkbox thisWeek">
-            <input type="checkbox" id="curve-thisWeek" onchange="updateCurveChart()">
-            <span class="curve-label">本周</span>
-          </label>
-          <label class="curve-checkbox lastWeek">
-            <input type="checkbox" id="curve-lastWeek" onchange="updateCurveChart()">
-            <span class="curve-label">上周</span>
-          </label>
-          <label class="curve-checkbox last7days">
-            <input type="checkbox" id="curve-last7days" onchange="updateCurveChart()" checked>
-            <span class="curve-label">近7天</span>
-          </label>
-          <label class="curve-checkbox last28days">
-            <input type="checkbox" id="curve-last28days" onchange="updateCurveChart()">
-            <span class="curve-label">近28天</span>
-          </label>
-          <label class="curve-checkbox thisMonth">
-            <input type="checkbox" id="curve-thisMonth" onchange="updateCurveChart()">
-            <span class="curve-label">本月</span>
-          </label>
-          <label class="curve-checkbox lastMonth">
-            <input type="checkbox" id="curve-lastMonth" onchange="updateCurveChart()">
-            <span class="curve-label">上月</span>
-          </label>
-          <label class="curve-checkbox thisYear">
-            <input type="checkbox" id="curve-thisYear" onchange="updateCurveChart()">
-            <span class="curve-label">今年</span>
-          </label>
-          <label class="curve-checkbox lastYear">
-            <input type="checkbox" id="curve-lastYear" onchange="updateCurveChart()">
-            <span class="curve-label">近一年</span>
-          </label>
-          <label class="curve-checkbox all">
-            <input type="checkbox" id="curve-all" onchange="updateCurveChart()">
-            <span class="curve-label">全部</span>
-          </label>
-        </div>
-        <div class="chart-container">
-          <canvas id="curve-chart"></canvas>
         </div>
       </div>
     </section>
@@ -2886,72 +2853,18 @@
             <div class="metric-card">
               <div class="metric-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'} <span style="opacity:0.5;font-size:10px;">UTC ${utcDateStr}</span></div>
               <div class="metric-value">${todayAvg.toFixed(1)}</div>
-              <div class="metric-compare">
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日平均' : 'Yesterday Avg'}</span>
-                  <span class="metric-compare-value">${yesterdayAvg ? yesterdayAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, yesterdayAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
-                  <span class="metric-compare-value">${thisWeekAvg ? thisWeekAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisWeekAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
-                  <span class="metric-compare-value">${thisMonthAvg ? thisMonthAvg.toFixed(1) : '-'} ${formatChange(calcChange(todayAvg, thisMonthAvg))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史平均' : 'All-time Avg'}</span>
-                  <span class="metric-compare-value">${overallAvg.toFixed(1)} ${formatChange(calcChange(todayAvg, overallAvg))}</span>
-                </div>
-              </div>
             </div>
 
             <!-- 今日峰值 -->
             <div class="metric-card">
               <div class="metric-label">${currentLang === 'zh' ? '今日峰值' : 'Today Peak'} <span style="opacity:0.5;font-size:10px;">UTC</span></div>
               <div class="metric-value">${todayPeak.toLocaleString()}</div>
-              <div class="metric-compare">
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日峰值' : 'Yesterday Peak'}</span>
-                  <span class="metric-compare-value">${yesterdayPeak ? yesterdayPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, yesterdayPeak))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天峰值' : '7 Days Peak'}</span>
-                  <span class="metric-compare-value">${thisWeekPeak ? thisWeekPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisWeekPeak))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天峰值' : '30 Days Peak'}</span>
-                  <span class="metric-compare-value">${thisMonthPeak ? thisMonthPeak.toLocaleString() : '-'} ${formatChange(calcChange(todayPeak, thisMonthPeak))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史峰值' : 'All-time Peak'}</span>
-                  <span class="metric-compare-value">${overallPeak.toLocaleString()} ${formatChange(calcChange(todayPeak, overallPeak))}</span>
-                </div>
-              </div>
             </div>
 
             <!-- 今日预测播放 -->
             <div class="metric-card">
               <div class="metric-label">${currentLang === 'zh' ? '今日预测播放' : 'Est. Daily Streams'} <span style="opacity:0.5;font-size:10px;">UTC</span></div>
               <div class="metric-value">${predictedStreams.toLocaleString()}</div>
-              <div class="metric-compare">
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '昨日预测' : 'Yesterday'}</span>
-                  <span class="metric-compare-value">${yesterdayDailyStreams ? yesterdayDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, yesterdayDailyStreams))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近7天' : '7 Days'}</span>
-                  <span class="metric-compare-value">${thisWeekDailyStreams ? thisWeekDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisWeekDailyStreams))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '近30天' : '30 Days'}</span>
-                  <span class="metric-compare-value">${thisMonthDailyStreams ? thisMonthDailyStreams.toLocaleString() : '-'} ${formatChange(calcChange(predictedStreams, thisMonthDailyStreams))}</span>
-                </div>
-                <div class="metric-compare-item">
-                  <span class="metric-compare-label">${currentLang === 'zh' ? '历史预测' : 'All-time Avg'}</span>
-                  <span class="metric-compare-value">${overallDailyStreams.toLocaleString()} ${formatChange(calcChange(predictedStreams, overallDailyStreams))}</span>
-                </div>
-              </div>
             </div>
           </div>
         `;
