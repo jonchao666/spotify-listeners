@@ -1003,10 +1003,17 @@ function startServer() {
 
       // 查询整体平均值
       const avgResult = db.exec(`
-        SELECT AVG(listener_count) as overallAvg
+        SELECT AVG(listener_count) as overallAvg, COUNT(*) as cnt
         FROM listeners
         WHERE timestamp >= ? AND timestamp < ?
       `, [startDate, endDate]);
+
+      console.log('Curve average debug:', {
+        type,
+        startDate,
+        endDate,
+        avgResult: avgResult.length > 0 ? avgResult[0].values : 'empty'
+      });
 
       const overallAvg = avgResult.length > 0 && avgResult[0].values.length > 0 && avgResult[0].values[0][0] !== null
         ? Math.round(avgResult[0].values[0][0] * 10) / 10
