@@ -2933,7 +2933,7 @@
         const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
         const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
 
-        // 今日预测播放量 (使用校准系数 + 历史同时段数据)
+        // 今日预测播放量 (使用校准系数 + 历史同时段数据 + 趋势调整)
         const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
         const currentHourUTC = nowUTC.getUTCHours();
         const calibrationFactor = factorData.factor || 480; // 默认值: 24*60/3 = 480
@@ -2944,26 +2944,42 @@
           // 已过时段的贡献 (实际数据)
           const elapsedContribution = todayAvg * hoursElapsedUTC * (calibrationFactor / 24);
 
-          // 剩余时段的贡献 (基于历史同时段数据预测)
+          // 剩余时段的贡献 (基于历史同时段数据 + 趋势调整)
           const remainingHours = 24 - hoursElapsedUTC;
 
-          // 获取历史数据中剩余时段(当前小时到24点)的平均值
-          const historicalData = heroData.filter(d => {
+          // 获取历史数据中已过时段(0点到当前小时)的平均值
+          const historicalElapsedData = heroData.filter(d => {
             const ts = new Date(d.timestamp);
-            // 排除今天的数据，只用历史数据
             if (ts >= todayStartUTC) return false;
-            // 筛选同时段数据 (当前小时到23点)
+            const hour = ts.getUTCHours();
+            return hour < currentHourUTC;
+          });
+
+          // 获取历史数据中剩余时段(当前小时到24点)的平均值
+          const historicalRemainingData = heroData.filter(d => {
+            const ts = new Date(d.timestamp);
+            if (ts >= todayStartUTC) return false;
             const hour = ts.getUTCHours();
             return hour >= currentHourUTC;
           });
 
-          // 计算历史同时段平均
-          let remainingAvg = todayAvg; // 默认用今日平均
-          if (historicalData.length > 0) {
-            remainingAvg = historicalData.reduce((s, d) => s + d.listenerCount, 0) / historicalData.length;
-          }
+          // 计算历史已过时段平均
+          const historicalElapsedAvg = historicalElapsedData.length > 0
+            ? historicalElapsedData.reduce((s, d) => s + d.listenerCount, 0) / historicalElapsedData.length
+            : todayAvg;
 
-          const remainingContribution = remainingAvg * remainingHours * (calibrationFactor / 24);
+          // 计算历史剩余时段平均
+          const historicalRemainingAvg = historicalRemainingData.length > 0
+            ? historicalRemainingData.reduce((s, d) => s + d.listenerCount, 0) / historicalRemainingData.length
+            : todayAvg;
+
+          // 计算趋势因子: 今日已过时段表现 / 历史已过时段平均
+          const trendFactor = historicalElapsedAvg > 0 ? (todayAvg / historicalElapsedAvg) : 1;
+
+          // 剩余时段预测 = 历史剩余时段平均 × 趋势因子
+          const adjustedRemainingAvg = historicalRemainingAvg * trendFactor;
+
+          const remainingContribution = adjustedRemainingAvg * remainingHours * (calibrationFactor / 24);
           predictedStreams = Math.round(elapsedContribution + remainingContribution);
         }
 
