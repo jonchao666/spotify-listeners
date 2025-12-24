@@ -2933,8 +2933,9 @@
         const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
         const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
 
-        // 今日预测播放量 (使用校准系数 + 时间加权)
+        // 今日预测播放量 (使用校准系数 + 历史同时段数据)
         const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
+        const currentHourUTC = nowUTC.getUTCHours();
         const calibrationFactor = factorData.factor || 480; // 默认值: 24*60/3 = 480
 
         // 时间加权预测: 考虑已过时段和剩余时段
@@ -2942,16 +2943,27 @@
         if (hoursElapsedUTC > 0 && todayValues.length > 0) {
           // 已过时段的贡献 (实际数据)
           const elapsedContribution = todayAvg * hoursElapsedUTC * (calibrationFactor / 24);
-          // 剩余时段的贡献 (基于当前趋势预测)
+
+          // 剩余时段的贡献 (基于历史同时段数据预测)
           const remainingHours = 24 - hoursElapsedUTC;
-          // 使用最近1小时的数据权重更高
-          const recentData = todayData.slice(-720); // 最近1小时(5秒间隔)
-          const recentAvg = recentData.length > 0
-            ? recentData.reduce((s, d) => s + d.listenerCount, 0) / recentData.length
-            : todayAvg;
-          // 加权平均: 70%最近趋势 + 30%全天平均
-          const projectedAvg = recentAvg * 0.7 + todayAvg * 0.3;
-          const remainingContribution = projectedAvg * remainingHours * (calibrationFactor / 24);
+
+          // 获取历史数据中剩余时段(当前小时到24点)的平均值
+          const historicalData = heroData.filter(d => {
+            const ts = new Date(d.timestamp);
+            // 排除今天的数据，只用历史数据
+            if (ts >= todayStartUTC) return false;
+            // 筛选同时段数据 (当前小时到23点)
+            const hour = ts.getUTCHours();
+            return hour >= currentHourUTC;
+          });
+
+          // 计算历史同时段平均
+          let remainingAvg = todayAvg; // 默认用今日平均
+          if (historicalData.length > 0) {
+            remainingAvg = historicalData.reduce((s, d) => s + d.listenerCount, 0) / historicalData.length;
+          }
+
+          const remainingContribution = remainingAvg * remainingHours * (calibrationFactor / 24);
           predictedStreams = Math.round(elapsedContribution + remainingContribution);
         }
 
