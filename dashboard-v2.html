@@ -3877,14 +3877,13 @@
         dailyDataHasMore = result.hasMore;
         dailyDataOffset += result.data.length;
 
-        // 获取今天的日期 (UTC)
+        // 获取今天的日期 (UTC)，过滤掉今天的数据（与Hero区重复）
         const nowUTC = new Date();
         const todayDateStr = `${nowUTC.getUTCFullYear()}-${String(nowUTC.getUTCMonth() + 1).padStart(2, '0')}-${String(nowUTC.getUTCDate()).padStart(2, '0')}`;
 
-        const cards = result.data.map(d => {
-          // 如果是今天，使用Hero区计算的时间加权预测值
-          const streams = d.date === todayDateStr ? todayPredictedStreams : d.predictedStreams;
-          return `
+        const cards = result.data
+          .filter(d => d.date !== todayDateStr) // 排除今天
+          .map(d => `
           <div class="daily-card">
             <div class="daily-card-date">${d.date}</div>
             <div class="daily-card-stats">
@@ -3898,11 +3897,11 @@
               </div>
               <div class="daily-card-stat">
                 <span class="daily-card-label">${t('daily.streams')}</span>
-                <span class="daily-card-value streams">${streams.toLocaleString()}</span>
+                <span class="daily-card-value streams">${d.predictedStreams.toLocaleString()}</span>
               </div>
             </div>
           </div>
-        `}).join('');
+        `).join('');
 
         if (append) {
           const grid = document.querySelector('#daily-data .daily-grid');
