@@ -3646,7 +3646,7 @@
         }).join('');
 
         document.getElementById('hourly-ranking').innerHTML = `
-          <div class="hourly-table">
+          <div class="hourly-table${hourlyExpanded ? ' expanded' : ''}">
             <div class="hourly-row header">
               <div>${currentLang === 'zh' ? '排名' : 'Rank'}</div>
               <div>${currentLang === 'zh' ? 'UTC时间' : 'UTC Time'}</div>
@@ -3656,6 +3656,8 @@
             ${rows}
           </div>
         `;
+        // 恢复按钮状态
+        restoreHourlyExpandState();
       } catch (e) {
         console.error('Failed to load hourly ranking:', e);
         document.getElementById('hourly-ranking').innerHTML = `<div class="loading">${t('hourly.noData')}</div>`;
@@ -3663,9 +3665,10 @@
     }
 
     // 时段分析展开/折叠
-    let hourlyExpanded = false;
+    let hourlyExpanded = localStorage.getItem('hourlyExpanded') === 'true';
     function toggleHourlyExpand() {
       hourlyExpanded = !hourlyExpanded;
+      localStorage.setItem('hourlyExpanded', hourlyExpanded);
       const table = document.querySelector('.hourly-table');
       const btn = document.getElementById('hourly-toggle');
       const text = document.getElementById('hourly-toggle-text');
@@ -3678,6 +3681,16 @@
         table.classList.remove('expanded');
         btn.classList.remove('expanded');
         text.textContent = currentLang === 'zh' ? '展开全部' : 'Show All';
+      }
+    }
+
+    // 初始化时恢复按钮状态
+    function restoreHourlyExpandState() {
+      const btn = document.getElementById('hourly-toggle');
+      const text = document.getElementById('hourly-toggle-text');
+      if (btn && text && hourlyExpanded) {
+        btn.classList.add('expanded');
+        text.textContent = currentLang === 'zh' ? '收起' : 'Collapse';
       }
     }
 
