@@ -2933,10 +2933,44 @@
         const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
         const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
 
-        // 今日预测播放量 (使用校准系数 + 历史同时段数据 + 趋势调整)
+        // 今日预测播放量 (使用校准系数 + 历史同时段数据 + 趋势调整 + 多项优化)
         const hoursElapsedUTC = (nowUTC - todayStartUTC) / (1000 * 60 * 60);
         const currentHourUTC = nowUTC.getUTCHours();
+        const todayDayOfWeek = nowUTC.getUTCDay(); // 0=周日, 1-5=工作日, 6=周六
+        const isWeekend = (todayDayOfWeek === 0 || todayDayOfWeek === 6);
         const calibrationFactor = factorData.factor || 480; // 默认值: 24*60/3 = 480
+
+        // 辅助函数: 计算中位数
+        const getMedian = (arr) => {
+          if (arr.length === 0) return 0;
+          const sorted = [...arr].sort((a, b) => a - b);
+          const mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        };
+
+        // 辅助函数: 计算加权值 (近期数据权重更高)
+        const getWeightedValues = (data) => {
+          const now = Date.now();
+          const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+          return data.map(d => {
+            const ts = new Date(d.timestamp).getTime();
+            // 7天内的数据权重为2，更早的数据权重为1
+            const weight = ts >= sevenDaysAgo ? 2 : 1;
+            return { value: d.listenerCount, weight };
+          });
+        };
+
+        // 辅助函数: 计算加权中位数
+        const getWeightedMedian = (data) => {
+          if (data.length === 0) return 0;
+          const weighted = getWeightedValues(data);
+          // 展开加权数据
+          const expanded = [];
+          weighted.forEach(w => {
+            for (let i = 0; i < w.weight; i++) expanded.push(w.value);
+          });
+          return getMedian(expanded);
+        };
 
         // 时间加权预测: 考虑已过时段和剩余时段
         let predictedStreams = 0;
@@ -2947,39 +2981,64 @@
           // 剩余时段的贡献 (基于历史同时段数据 + 趋势调整)
           const remainingHours = 24 - hoursElapsedUTC;
 
-          // 获取历史数据中已过时段(0点到当前小时)的平均值
+          // 获取历史数据中已过时段(0点到当前小时)的数据
+          // 优化: 区分工作日/周末，只用同类型日期
           const historicalElapsedData = heroData.filter(d => {
             const ts = new Date(d.timestamp);
             if (ts >= todayStartUTC) return false;
             const hour = ts.getUTCHours();
-            return hour < currentHourUTC;
+            if (hour >= currentHourUTC) return false;
+            // 区分工作日/周末
+            const dayOfWeek = ts.getUTCDay();
+            const dataIsWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            return dataIsWeekend === isWeekend;
           });
 
-          // 获取历史数据中剩余时段(当前小时到24点)的平均值
+          // 获取历史数据中剩余时段(当前小时到24点)的数据
           const historicalRemainingData = heroData.filter(d => {
             const ts = new Date(d.timestamp);
             if (ts >= todayStartUTC) return false;
             const hour = ts.getUTCHours();
-            return hour >= currentHourUTC;
+            if (hour < currentHourUTC) return false;
+            // 区分工作日/周末
+            const dayOfWeek = ts.getUTCDay();
+            const dataIsWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            return dataIsWeekend === isWeekend;
           });
 
-          // 计算历史已过时段平均
-          const historicalElapsedAvg = historicalElapsedData.length > 0
-            ? historicalElapsedData.reduce((s, d) => s + d.listenerCount, 0) / historicalElapsedData.length
+          // 如果同类型日期数据不足，回退到所有历史数据
+          const fallbackElapsedData = heroData.filter(d => {
+            const ts = new Date(d.timestamp);
+            if (ts >= todayStartUTC) return false;
+            return ts.getUTCHours() < currentHourUTC;
+          });
+          const fallbackRemainingData = heroData.filter(d => {
+            const ts = new Date(d.timestamp);
+            if (ts >= todayStartUTC) return false;
+            return ts.getUTCHours() >= currentHourUTC;
+          });
+
+          const useElapsedData = historicalElapsedData.length >= 100 ? historicalElapsedData : fallbackElapsedData;
+          const useRemainingData = historicalRemainingData.length >= 100 ? historicalRemainingData : fallbackRemainingData;
+
+          // 使用加权中位数计算历史值 (近期数据权重更高 + 抗异常值)
+          const historicalElapsedMedian = useElapsedData.length > 0
+            ? getWeightedMedian(useElapsedData)
             : todayAvg;
 
-          // 计算历史剩余时段平均
-          const historicalRemainingAvg = historicalRemainingData.length > 0
-            ? historicalRemainingData.reduce((s, d) => s + d.listenerCount, 0) / historicalRemainingData.length
+          const historicalRemainingMedian = useRemainingData.length > 0
+            ? getWeightedMedian(useRemainingData)
             : todayAvg;
 
-          // 计算趋势因子: 今日已过时段表现 / 历史已过时段平均
-          const trendFactor = historicalElapsedAvg > 0 ? (todayAvg / historicalElapsedAvg) : 1;
+          // 计算趋势因子: 今日已过时段表现 / 历史已过时段中位数
+          let trendFactor = historicalElapsedMedian > 0 ? (todayAvg / historicalElapsedMedian) : 1;
+          // 限制趋势因子范围 (0.5-2.0)，避免极端预测
+          trendFactor = Math.max(0.5, Math.min(2.0, trendFactor));
 
-          // 剩余时段预测 = 历史剩余时段平均 × 趋势因子
-          const adjustedRemainingAvg = historicalRemainingAvg * trendFactor;
+          // 剩余时段预测 = 历史剩余时段中位数 × 趋势因子
+          const adjustedRemainingMedian = historicalRemainingMedian * trendFactor;
 
-          const remainingContribution = adjustedRemainingAvg * remainingHours * (calibrationFactor / 24);
+          const remainingContribution = adjustedRemainingMedian * remainingHours * (calibrationFactor / 24);
           predictedStreams = Math.round(elapsedContribution + remainingContribution);
         }
 
