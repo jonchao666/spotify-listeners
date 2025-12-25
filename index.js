@@ -1079,11 +1079,18 @@ function startServer() {
         });
       }
 
+      // 获取当前小时（用于判断是否排除未完成的小时）
+      const currentHour = now.getUTCHours();
+
       const data = [];
       for (let h = 0; h < 24; h++) {
+        // 如果是今天/本周/本月/今年等包含当天的类型，排除当前未完成的小时
+        const isIncludingToday = ['today', 'thisWeek', 'thisMonth', 'thisYear', 'all'].includes(type);
+        const isCurrentHour = isIncludingToday && h === currentHour;
+
         data.push({
           hour: h,
-          value: hourlyMap[h] !== undefined ? hourlyMap[h] : null
+          value: isCurrentHour ? null : (hourlyMap[h] !== undefined ? hourlyMap[h] : null)
         });
       }
 

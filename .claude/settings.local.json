@@ -20,7 +20,9 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(cd:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git -C \"C:\\\\Users\\\\97046\\\\Documents\\\\Code\\\\spotify-listeners-server\" add -A)",
+      "Bash(git -C \"C:\\\\Users\\\\97046\\\\Documents\\\\Code\\\\spotify-listeners-server\" status)"
     ]
   }
 }
