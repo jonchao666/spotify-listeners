@@ -1327,6 +1327,96 @@ function startServer() {
     }
   });
 
+  // Hero 区域统计数据 API（优化：后端计算，避免前端加载大量数据）
+  app.get('/api/hero-stats', (req, res) => {
+    try {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const calibrationFactor = getCalibrationFactor();
+
+      // 辅助函数：获取时间段统计
+      const getPeriodStats = (startDate, endDate = null) => {
+        let sql, params;
+        if (endDate) {
+          sql = `SELECT AVG(listener_count) as avg, MAX(listener_count) as peak, COUNT(*) as samples
+                 FROM listeners WHERE DATE(timestamp) >= ? AND DATE(timestamp) < ?`;
+          params = [startDate, endDate];
+        } else {
+          sql = `SELECT AVG(listener_count) as avg, MAX(listener_count) as peak, COUNT(*) as samples
+                 FROM listeners WHERE DATE(timestamp) >= ?`;
+          params = [startDate];
+        }
+        const result = db.exec(sql, params);
+        if (result.length === 0 || !result[0].values[0][0]) {
+          return { avg: null, peak: null, samples: 0, dailyStreams: null };
+        }
+        const row = result[0].values[0];
+        return {
+          avg: Math.round(row[0] * 10) / 10,
+          peak: row[1],
+          samples: row[2],
+          dailyStreams: row[0] ? Math.round(row[0] * calibrationFactor) : null
+        };
+      };
+
+      // 计算各时间点
+      const todayStart = todayStr;
+      const yesterdayStart = new Date(now.getTime() - 24*60*60*1000).toISOString().split('T')[0];
+      const weekStart = new Date(now.getTime() - 6*24*60*60*1000).toISOString().split('T')[0];
+      const lastWeekStart = new Date(now.getTime() - 13*24*60*60*1000).toISOString().split('T')[0];
+      const lastWeekEnd = weekStart;
+      const monthStart = new Date(now.getTime() - 29*24*60*60*1000).toISOString().split('T')[0];
+
+      // 上月起止日期
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthStart = lastMonthDate.toISOString().split('T')[0];
+      const thisMonthFirstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+      // 获取各时期统计
+      const today = getPeriodStats(todayStart);
+      const yesterday = getPeriodStats(yesterdayStart, todayStart);
+      const thisWeek = getPeriodStats(weekStart);
+      const lastWeek = getPeriodStats(lastWeekStart, lastWeekEnd);
+      const thisMonth = getPeriodStats(monthStart);
+      const lastMonth = getPeriodStats(lastMonthStart, thisMonthFirstDay);
+
+      // 全部数据
+      const allResult = db.exec(`SELECT AVG(listener_count) as avg, MAX(listener_count) as peak, COUNT(*) as samples FROM listeners`);
+      const overall = allResult.length > 0 && allResult[0].values[0][0] ? {
+        avg: Math.round(allResult[0].values[0][0] * 10) / 10,
+        peak: allResult[0].values[0][1],
+        samples: allResult[0].values[0][2],
+        dailyStreams: Math.round(allResult[0].values[0][0] * calibrationFactor)
+      } : { avg: null, peak: null, samples: 0, dailyStreams: null };
+
+      // 1小时前平均（用于趋势）
+      const hourAgoResult = db.exec(`SELECT AVG(listener_count) as avg FROM listeners WHERE timestamp >= datetime('now', '-1 hour')`);
+      const hourAgoAvg = hourAgoResult.length > 0 && hourAgoResult[0].values[0][0]
+        ? Math.round(hourAgoResult[0].values[0][0] * 10) / 10
+        : null;
+
+      // 当前最新值
+      const latestResult = db.exec(`SELECT listener_count FROM listeners ORDER BY timestamp DESC LIMIT 1`);
+      const current = latestResult.length > 0 ? latestResult[0].values[0][0] : 0;
+
+      res.json({
+        current,
+        hourAgoAvg,
+        calibrationFactor: Math.round(calibrationFactor * 100) / 100,
+        today,
+        yesterday,
+        thisWeek,
+        lastWeek,
+        thisMonth,
+        lastMonth,
+        overall
+      });
+    } catch (e) {
+      console.error('Hero stats 计算失败:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // 今日预测 API（基于历史同时段对比）
   app.get('/api/prediction', (req, res) => {
     try {

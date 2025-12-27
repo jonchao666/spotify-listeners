@@ -2904,117 +2904,60 @@
     }
 
 
-    // 加载数据概览（整合所有数据展示，独立获取数据）
+    // 加载数据概览（整合所有数据展示，使用后端聚合API优化性能）
     async function loadHeroSection() {
       try {
-        // 获取统计数据、历史数据、校准系数和预测数据
-        const [statsRes, heroDataRes, factorRes, predictionRes] = await Promise.all([
-          fetch('/api/stats'),
-          fetch('/api/data?limit=250000'),
-          fetch('/api/prediction-factor'),
+        // 并行获取 hero 统计数据和预测数据
+        const [heroStatsRes, predictionRes] = await Promise.all([
+          fetch('/api/hero-stats'),
           fetch('/api/prediction')
         ]);
 
-        const stats = await statsRes.json();
-        const heroData = await heroDataRes.json();
-        const factorData = await factorRes.json();
+        const heroStats = await heroStatsRes.json();
         const predictionData = await predictionRes.json();
 
-        if (!stats || stats.totalRecords === 0) {
+        if (!heroStats || heroStats.overall.samples === 0) {
           document.getElementById('hero-content').innerHTML = `<div class="loading">${t('na')}</div>`;
           return;
         }
 
-        const current = stats.latestCount;
-        const nowUTC = new Date();
+        // 从 API 获取所有数据
+        const current = heroStats.current;
+        const todayAvg = heroStats.today.avg || current;
+        const todayPeak = heroStats.today.peak || current;
+        const thisWeekAvg = heroStats.thisWeek.avg;
+        const thisWeekPeak = heroStats.thisWeek.peak;
+        const thisWeekDailyStreams = heroStats.thisWeek.dailyStreams;
+        const thisMonthAvg = heroStats.thisMonth.avg;
+        const thisMonthPeak = heroStats.thisMonth.peak;
+        const thisMonthDailyStreams = heroStats.thisMonth.dailyStreams;
+        const overallAvg = heroStats.overall.avg;
+        const overallPeak = heroStats.overall.peak;
+        const overallDailyStreams = heroStats.overall.dailyStreams;
+        const yesterdayAvg = heroStats.yesterday.avg;
+        const yesterdayPeak = heroStats.yesterday.peak;
+        const yesterdayDailyStreams = heroStats.yesterday.dailyStreams;
+        const lastWeekAvg = heroStats.lastWeek.avg;
+        const lastWeekPeak = heroStats.lastWeek.peak;
+        const lastWeekDailyStreams = heroStats.lastWeek.dailyStreams;
+        const lastMonthAvg = heroStats.lastMonth.avg;
+        const lastMonthPeak = heroStats.lastMonth.peak;
+        const lastMonthDailyStreams = heroStats.lastMonth.dailyStreams;
+        const calibrationFactor = heroStats.calibrationFactor;
 
-        // === 今日数据 (UTC) ===
-        const todayStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate(), 0, 0, 0, 0));
-        const todayData = heroData.filter(d => new Date(d.timestamp) >= todayStartUTC);
-        const todayValues = todayData.map(d => d.listenerCount);
-        const todayAvg = todayValues.length > 0 ? todayValues.reduce((a, b) => a + b, 0) / todayValues.length : current;
-        const todayPeak = todayValues.length > 0 ? Math.max(...todayValues) : current;
-
-        // 今日预测播放量 (使用新的 API：历史同时段对比法)
-        // 算法：今日前N小时平均 ÷ 历史同时段平均 = 系数 × 历史日均播放量
+        // 今日预测播放量
         let predictedStreams = 0;
         if (predictionData.available) {
           predictedStreams = predictionData.predictedStreams;
         }
-
-        // 保存今日预测值供每日数据表格使用
         todayPredictedStreams = predictedStreams;
 
-        // 校准系数 (用于其他时期的预测计算)
-        const calibrationFactor = factorData.factor || 480;
-
         // 对比1小时前
-        const data1h = heroData.slice(-720);
-        const avg1h = data1h.length > 0 ? data1h.reduce((s, d) => s + d.listenerCount, 0) / data1h.length : 0;
+        const avg1h = heroStats.hourAgoAvg || 0;
         const trend1h = avg1h > 0 ? ((current - avg1h) / avg1h * 100).toFixed(1) : 0;
         const isUp = parseFloat(trend1h) > 0;
 
-        // === 过去7天数据 (UTC) ===
-        const weekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 6, 0, 0, 0));
-        const thisWeekData = heroData.filter(d => new Date(d.timestamp) >= weekStartUTC);
-        const thisWeekValues = thisWeekData.map(d => d.listenerCount);
-        const thisWeekAvg = thisWeekValues.length > 0 ? thisWeekValues.reduce((a, b) => a + b, 0) / thisWeekValues.length : null;
-        const thisWeekPeak = thisWeekValues.length > 0 ? Math.max(...thisWeekValues) : null;
-
-        // === 近30天数据 (UTC) ===
-        const monthStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 29, 0, 0, 0));
-        const thisMonthData = heroData.filter(d => new Date(d.timestamp) >= monthStartUTC);
-        const thisMonthValues = thisMonthData.map(d => d.listenerCount);
-        const thisMonthAvg = thisMonthValues.length > 0 ? thisMonthValues.reduce((a, b) => a + b, 0) / thisMonthValues.length : null;
-        const thisMonthPeak = thisMonthValues.length > 0 ? Math.max(...thisMonthValues) : null;
-
-        // === 全部数据 ===
-        const allValues = heroData.map(d => d.listenerCount);
-        const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
-        const overallPeak = Math.max(...allValues);
-
-        // === 计算各时期预测每日播放量 ===
-        // 使用校准系数 (calibrationFactor = 实际播放 / 平均听众)
-        const calcDailyStreams = (avg) => avg ? Math.round(avg * calibrationFactor) : null;
-        const thisWeekDailyStreams = calcDailyStreams(thisWeekAvg);
-        const thisMonthDailyStreams = calcDailyStreams(thisMonthAvg);
-        const overallDailyStreams = calcDailyStreams(overallAvg);
-
-        // === 昨天数据 (用于对比) ===
-        const yesterdayStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 1, 0, 0, 0, 0));
-        const yesterdayData = heroData.filter(d => {
-          const ts = new Date(d.timestamp);
-          return ts >= yesterdayStartUTC && ts < todayStartUTC;
-        });
-        const yesterdayValues = yesterdayData.map(d => d.listenerCount);
-        const yesterdayAvg = yesterdayValues.length > 0 ? yesterdayValues.reduce((a, b) => a + b, 0) / yesterdayValues.length : null;
-        const yesterdayPeak = yesterdayValues.length > 0 ? Math.max(...yesterdayValues) : null;
-        const yesterdayDailyStreams = calcDailyStreams(yesterdayAvg);
-
-        // === 7-14天前数据 (用于对比) ===
-        const lastWeekStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 13, 0, 0, 0));
-        const lastWeekEndUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 6, 0, 0, 0));
-        const lastWeekData = heroData.filter(d => {
-          const ts = new Date(d.timestamp);
-          return ts >= lastWeekStartUTC && ts < lastWeekEndUTC;
-        });
-        const lastWeekValues = lastWeekData.map(d => d.listenerCount);
-        const lastWeekAvg = lastWeekValues.length > 0 ? lastWeekValues.reduce((a, b) => a + b, 0) / lastWeekValues.length : null;
-        const lastWeekPeak = lastWeekValues.length > 0 ? Math.max(...lastWeekValues) : null;
-        const lastWeekDailyStreams = calcDailyStreams(lastWeekAvg);
-
-        // === 上月数据 (用于对比) ===
-        const lastMonthStartUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth() - 1, 1));
-        const lastMonthData = heroData.filter(d => {
-          const ts = new Date(d.timestamp);
-          return ts >= lastMonthStartUTC && ts < monthStartUTC;
-        });
-        const lastMonthValues = lastMonthData.map(d => d.listenerCount);
-        const lastMonthAvg = lastMonthValues.length > 0 ? lastMonthValues.reduce((a, b) => a + b, 0) / lastMonthValues.length : null;
-        const lastMonthPeak = lastMonthValues.length > 0 ? Math.max(...lastMonthValues) : null;
-        const lastMonthDailyStreams = calcDailyStreams(lastMonthAvg);
-
-        // === 计算变化百分比 ===
+        // 计算变化百分比
         const calcChange = (current, previous) => {
           if (!current || !previous) return null;
           return ((current - previous) / previous * 100).toFixed(1);
@@ -3028,8 +2971,8 @@
           return `<span class="metric-change ${cls}">${arrow}${Math.abs(num)}%</span>`;
         };
 
-
         // UTC日期格式化
+        const nowUTC = new Date();
         const utcDateStr = nowUTC.toISOString().split('T')[0];
         const yesterdayDateStr = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate() - 1)).toISOString().split('T')[0];
 
@@ -3044,13 +2987,13 @@
             <!-- 今日平均 -->
             <div class="metric-card">
               <div class="metric-label">${currentLang === 'zh' ? '今日平均' : 'Today Avg'} <span style="opacity:0.5;font-size:10px;">UTC ${utcDateStr}</span></div>
-              <div class="metric-value">${todayAvg.toFixed(1)}</div>
+              <div class="metric-value">${todayAvg ? todayAvg.toFixed(1) : '-'}</div>
             </div>
 
             <!-- 今日峰值 -->
             <div class="metric-card">
               <div class="metric-label">${currentLang === 'zh' ? '今日峰值' : 'Today Peak'} <span style="opacity:0.5;font-size:10px;">UTC</span></div>
-              <div class="metric-value">${todayPeak.toLocaleString()}</div>
+              <div class="metric-value">${todayPeak ? todayPeak.toLocaleString() : '-'}</div>
             </div>
 
             <!-- 今日预测播放 -->
