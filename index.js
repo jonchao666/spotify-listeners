@@ -1376,8 +1376,8 @@ function startServer() {
         });
       }
 
-      // 3. 确定使用多少天的历史数据（28天或全部）
-      const daysToUse = Math.min(28, totalHistoricalDays);
+      // 3. 确定使用多少天的历史数据（7天或全部）
+      const daysToUse = Math.min(7, totalHistoricalDays);
 
       // 4. 获取历史同时段（0:00 到当前小时）的平均听众数
       const historicalSameHoursResult = db.exec(`
