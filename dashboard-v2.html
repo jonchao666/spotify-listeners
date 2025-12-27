@@ -2945,6 +2945,9 @@
         // 保存今日预测值供每日数据表格使用
         todayPredictedStreams = predictedStreams;
 
+        // 校准系数 (用于其他时期的预测计算)
+        const calibrationFactor = factorData.factor || 480;
+
         // 对比1小时前
         const data1h = heroData.slice(-720);
         const avg1h = data1h.length > 0 ? data1h.reduce((s, d) => s + d.listenerCount, 0) / data1h.length : 0;
