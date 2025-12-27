@@ -2933,7 +2933,7 @@ async function loadPrediction(data) {
         </div>
       </div>
       <div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.5)">
-        📐 算法：今日0-\${pred.currentHour}时平均 <b>\${pred.todayAvg}</b> ÷ 历史同时段平均 <b>\${pred.historicalSameHoursAvg}</b> = <b>\${pred.coefficient.toFixed(3)}</b> → 历史日均 <b>\${pred.historicalDailyStreams.toLocaleString()}</b> × 系数 = <b>\${pred.predictedStreams.toLocaleString()}</b>
+        📐 算法：今日前\${pred.currentHour}小时平均 <b>\${pred.todayAvg}</b> ÷ 历史同时段平均 <b>\${pred.historicalSameHoursAvg}</b> = <b>\${pred.coefficient.toFixed(3)}</b> → 历史日均 <b>\${pred.historicalDailyStreams.toLocaleString()}</b> × 系数 = <b>\${pred.predictedStreams.toLocaleString()}</b>
       </div>
     \`;
   } catch (e) {
