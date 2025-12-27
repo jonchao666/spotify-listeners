@@ -1400,39 +1400,25 @@ function startServer() {
       // 5. 计算系数：今天同时段表现 / 历史同时段表现
       const coefficient = todayAvg / historicalSameHoursAvg;
 
-      // 6. 获取历史日均播放量
+      // 6. 获取历史日均播放量（用校准系数估算，保持一致性）
       let historicalDailyStreams = null;
-      let streamsSource = 'estimated';
 
-      // 优先从 actual_streams 获取
-      const actualStreamsResult = db.exec(`
-        SELECT AVG(streams) as avgStreams, COUNT(*) as days
-        FROM actual_streams
-        WHERE date >= DATE(?, '-' || ? || ' days')
-          AND date < ?
+      // 计算历史日均听众数
+      const historicalFullDayResult = db.exec(`
+        SELECT AVG(daily_avg) as avg
+        FROM (
+          SELECT DATE(timestamp) as date, AVG(listener_count) as daily_avg
+          FROM listeners
+          WHERE DATE(timestamp) >= DATE(?, '-' || ? || ' days')
+            AND DATE(timestamp) < ?
+          GROUP BY DATE(timestamp)
+        )
       `, [todayDateStr, daysToUse, todayDateStr]);
 
-      if (actualStreamsResult.length > 0 && actualStreamsResult[0].values[0][0] && actualStreamsResult[0].values[0][1] >= 3) {
-        // 至少有3天的真实数据才使用
-        historicalDailyStreams = actualStreamsResult[0].values[0][0];
-        streamsSource = 'actual';
-      } else {
-        // 用校准系数估算
-        const historicalFullDayResult = db.exec(`
-          SELECT AVG(daily_avg) as avg
-          FROM (
-            SELECT DATE(timestamp) as date, AVG(listener_count) as daily_avg
-            FROM listeners
-            WHERE DATE(timestamp) >= DATE(?, '-' || ? || ' days')
-              AND DATE(timestamp) < ?
-            GROUP BY DATE(timestamp)
-          )
-        `, [todayDateStr, daysToUse, todayDateStr]);
-
-        if (historicalFullDayResult.length > 0 && historicalFullDayResult[0].values[0][0]) {
-          const calibrationFactor = getCalibrationFactor();
-          historicalDailyStreams = historicalFullDayResult[0].values[0][0] * calibrationFactor;
-        }
+      if (historicalFullDayResult.length > 0 && historicalFullDayResult[0].values[0][0]) {
+        const calibrationFactor = getCalibrationFactor();
+        const historicalDailyAvg = historicalFullDayResult[0].values[0][0];
+        historicalDailyStreams = historicalDailyAvg * calibrationFactor;
       }
 
       if (!historicalDailyStreams) {
@@ -1475,7 +1461,6 @@ function startServer() {
         historicalDays: daysToUse,
         coefficient: Math.round(coefficient * 1000) / 1000,
         historicalDailyStreams: Math.round(historicalDailyStreams),
-        streamsSource,
         predictedStreams,
         trendPercent: Math.round(trendPercent * 10) / 10
       });
@@ -2920,9 +2905,6 @@ async function loadPrediction(data) {
         ? \`低于历史 \${Math.round((1 - pred.coefficient) * 100)}%\`
         : '与历史持平';
 
-    // 数据来源标签
-    const sourceLabel = pred.streamsSource === 'actual' ? '真实数据' : '估算';
-
     contentEl.innerHTML = \`
       <div class="stats-grid">
         <div class="stat-card highlight">
@@ -2930,7 +2912,7 @@ async function loadPrediction(data) {
           <div class="stat-content">
             <div class="stat-label">今日预计播放次数</div>
             <div class="stat-value">\${pred.predictedStreams.toLocaleString()}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.6)">基于近\${pred.historicalDays}天 · \${sourceLabel}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6)">基于近\${pred.historicalDays}天历史数据</div>
           </div>
         </div>
         <div class="stat-card">
