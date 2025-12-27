@@ -1327,6 +1327,164 @@ function startServer() {
     }
   });
 
+  // 今日预测 API（基于历史同时段对比）
+  app.get('/api/prediction', (req, res) => {
+    try {
+      const now = new Date();
+      const currentHour = now.getUTCHours();
+      const todayDateStr = now.toISOString().split('T')[0];
+
+      // 如果是凌晨0点，数据太少无法预测
+      if (currentHour === 0) {
+        return res.json({
+          available: false,
+          message: '当前时段数据不足，无法预测'
+        });
+      }
+
+      // 1. 获取今天 0:00 到当前小时的平均听众数
+      const todayResult = db.exec(`
+        SELECT AVG(listener_count) as avg, COUNT(*) as samples
+        FROM listeners
+        WHERE DATE(timestamp) = ?
+          AND CAST(strftime('%H', timestamp) AS INTEGER) < ?
+      `, [todayDateStr, currentHour]);
+
+      if (todayResult.length === 0 || !todayResult[0].values[0][0]) {
+        return res.json({
+          available: false,
+          message: '今日数据不足'
+        });
+      }
+
+      const todayAvg = todayResult[0].values[0][0];
+      const todaySamples = todayResult[0].values[0][1];
+
+      // 2. 计算有多少天的历史数据
+      const daysResult = db.exec(`
+        SELECT COUNT(DISTINCT DATE(timestamp)) as days
+        FROM listeners
+        WHERE DATE(timestamp) < ?
+      `, [todayDateStr]);
+
+      const totalHistoricalDays = daysResult.length > 0 ? daysResult[0].values[0][0] : 0;
+
+      if (totalHistoricalDays < 1) {
+        return res.json({
+          available: false,
+          message: '历史数据不足'
+        });
+      }
+
+      // 3. 确定使用多少天的历史数据（28天或全部）
+      const daysToUse = Math.min(28, totalHistoricalDays);
+
+      // 4. 获取历史同时段（0:00 到当前小时）的平均听众数
+      const historicalSameHoursResult = db.exec(`
+        SELECT AVG(listener_count) as avg
+        FROM listeners
+        WHERE DATE(timestamp) >= DATE(?, '-' || ? || ' days')
+          AND DATE(timestamp) < ?
+          AND CAST(strftime('%H', timestamp) AS INTEGER) < ?
+      `, [todayDateStr, daysToUse, todayDateStr, currentHour]);
+
+      if (historicalSameHoursResult.length === 0 || !historicalSameHoursResult[0].values[0][0]) {
+        return res.json({
+          available: false,
+          message: '历史同时段数据不足'
+        });
+      }
+
+      const historicalSameHoursAvg = historicalSameHoursResult[0].values[0][0];
+
+      // 5. 计算系数：今天同时段表现 / 历史同时段表现
+      const coefficient = todayAvg / historicalSameHoursAvg;
+
+      // 6. 获取历史日均播放量
+      let historicalDailyStreams = null;
+      let streamsSource = 'estimated';
+
+      // 优先从 actual_streams 获取
+      const actualStreamsResult = db.exec(`
+        SELECT AVG(streams) as avgStreams, COUNT(*) as days
+        FROM actual_streams
+        WHERE date >= DATE(?, '-' || ? || ' days')
+          AND date < ?
+      `, [todayDateStr, daysToUse, todayDateStr]);
+
+      if (actualStreamsResult.length > 0 && actualStreamsResult[0].values[0][0] && actualStreamsResult[0].values[0][1] >= 3) {
+        // 至少有3天的真实数据才使用
+        historicalDailyStreams = actualStreamsResult[0].values[0][0];
+        streamsSource = 'actual';
+      } else {
+        // 用校准系数估算
+        const historicalFullDayResult = db.exec(`
+          SELECT AVG(daily_avg) as avg
+          FROM (
+            SELECT DATE(timestamp) as date, AVG(listener_count) as daily_avg
+            FROM listeners
+            WHERE DATE(timestamp) >= DATE(?, '-' || ? || ' days')
+              AND DATE(timestamp) < ?
+            GROUP BY DATE(timestamp)
+          )
+        `, [todayDateStr, daysToUse, todayDateStr]);
+
+        if (historicalFullDayResult.length > 0 && historicalFullDayResult[0].values[0][0]) {
+          const calibrationFactor = getCalibrationFactor();
+          historicalDailyStreams = historicalFullDayResult[0].values[0][0] * calibrationFactor;
+        }
+      }
+
+      if (!historicalDailyStreams) {
+        return res.json({
+          available: false,
+          message: '无法计算历史播放量'
+        });
+      }
+
+      // 7. 预测今日播放量
+      const predictedStreams = Math.round(historicalDailyStreams * coefficient);
+
+      // 8. 计算趋势（对比最近1小时和之前的变化）
+      const recentResult = db.exec(`
+        SELECT AVG(listener_count) as avg
+        FROM listeners
+        WHERE timestamp >= datetime('now', '-1 hour')
+      `);
+      const olderResult = db.exec(`
+        SELECT AVG(listener_count) as avg
+        FROM listeners
+        WHERE timestamp >= datetime('now', '-2 hours')
+          AND timestamp < datetime('now', '-1 hour')
+      `);
+
+      let trendPercent = 0;
+      if (recentResult.length > 0 && olderResult.length > 0 &&
+          recentResult[0].values[0][0] && olderResult[0].values[0][0]) {
+        const recentAvg = recentResult[0].values[0][0];
+        const olderAvg = olderResult[0].values[0][0];
+        trendPercent = ((recentAvg - olderAvg) / olderAvg * 100);
+      }
+
+      res.json({
+        available: true,
+        currentHour,
+        todayAvg: Math.round(todayAvg * 10) / 10,
+        todaySamples,
+        historicalSameHoursAvg: Math.round(historicalSameHoursAvg * 10) / 10,
+        historicalDays: daysToUse,
+        coefficient: Math.round(coefficient * 1000) / 1000,
+        historicalDailyStreams: Math.round(historicalDailyStreams),
+        streamsSource,
+        predictedStreams,
+        trendPercent: Math.round(trendPercent * 10) / 10
+      });
+    } catch (e) {
+      console.error('预测计算失败:', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // 获取邮件配置状态 (不返回密钥/密码)
   app.get('/api/email/config', (req, res) => {
     res.json({
@@ -2736,68 +2894,70 @@ async function loadChart() {
 
 
 
-function loadPrediction(data) {
-  if (data.length < 10) {
-    document.getElementById('prediction').style.display = 'none';
-    return;
+async function loadPrediction(data) {
+  const predictionEl = document.getElementById('prediction');
+  const contentEl = document.getElementById('prediction-content');
+
+  try {
+    const response = await fetch('/api/prediction');
+    const pred = await response.json();
+
+    if (!pred.available) {
+      predictionEl.style.display = 'none';
+      return;
+    }
+
+    predictionEl.style.display = 'block';
+
+    // 趋势判断
+    const trendPercent = pred.trendPercent;
+    const trend = trendPercent > 5 ? '📈 爆发增长' : trendPercent < -5 ? '📉 快速回落' : '➡️ 趋于平稳';
+
+    // 系数描述
+    const coeffDesc = pred.coefficient > 1
+      ? \`高于历史 \${Math.round((pred.coefficient - 1) * 100)}%\`
+      : pred.coefficient < 1
+        ? \`低于历史 \${Math.round((1 - pred.coefficient) * 100)}%\`
+        : '与历史持平';
+
+    // 数据来源标签
+    const sourceLabel = pred.streamsSource === 'actual' ? '真实数据' : '估算';
+
+    contentEl.innerHTML = \`
+      <div class="stats-grid">
+        <div class="stat-card highlight">
+          <div class="stat-icon">🌟</div>
+          <div class="stat-content">
+            <div class="stat-label">今日预计播放次数</div>
+            <div class="stat-value">\${pred.predictedStreams.toLocaleString()}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6)">基于近\${pred.historicalDays}天 · \${sourceLabel}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <div class="stat-label">今日表现系数</div>
+            <div class="stat-value" style="font-size:28px">\${pred.coefficient.toFixed(2)}x</div>
+            <div style="font-size:12px;color:\${pred.coefficient >= 1 ? '#1DB954' : '#ef4444'}">\${coeffDesc}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏰</div>
+          <div class="stat-content">
+            <div class="stat-label">当前势能</div>
+            <div class="stat-value" style="font-size:20px">\${trend}</div>
+            <div style="font-size:12px;color:\${trendPercent > 0 ? '#1DB954' : '#ef4444'}">\${trendPercent > 0 ? '+' : ''}\${trendPercent}% (较上小时)</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.5)">
+        📐 算法：今日0-\${pred.currentHour}时平均 <b>\${pred.todayAvg}</b> ÷ 历史同时段平均 <b>\${pred.historicalSameHoursAvg}</b> = <b>\${pred.coefficient.toFixed(3)}</b> → 历史日均 <b>\${pred.historicalDailyStreams.toLocaleString()}</b> × 系数 = <b>\${pred.predictedStreams.toLocaleString()}</b>
+      </div>
+    \`;
+  } catch (e) {
+    console.error('加载预测失败:', e);
+    predictionEl.style.display = 'none';
   }
-
-  document.getElementById('prediction').style.display = 'block';
-
-  // 计算今日数据
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayData = data.filter(d => new Date(d.timestamp) >= todayStart);
-  
-  // 计算平均收听人数
-  const avgListeners = todayData.length > 0 
-    ? todayData.reduce((sum, d) => sum + d.listenerCount, 0) / todayData.length 
-    : data.slice(-100).reduce((sum, d) => sum + d.listenerCount, 0) / Math.min(data.length, 100);
-  
-  // 已经过去的时间（小时）
-  const hoursElapsed = (now - todayStart) / (1000 * 60 * 60);
-  
-  // 预测累计播放（以"人·分钟"为单位）
-  const currentPlayMinutes = todayData.reduce((sum, d) => sum + d.listenerCount, 0) * 5 / 60;
-  const remainingHours = 24 - hoursElapsed;
-  const predictedRemainingMinutes = avgListeners * remainingHours * 60;
-  const predictedTotalMinutes = currentPlayMinutes + predictedRemainingMinutes;
-  
-  // 趋势判断
-  const recentAvg = data.slice(-12).reduce((s, d) => s + d.listenerCount, 0) / Math.min(12, data.length);
-  const olderAvg = data.slice(-60, -12).reduce((s, d) => s + d.listenerCount, 0) / Math.min(48, Math.max(1, data.length - 12));
-  const trendPercent = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1) : 0;
-  const trend = trendPercent > 5 ? '📈 爆发增长' : trendPercent < -5 ? '📉 快速回落' : '➡️ 趋于平稳';
-
-  // 预测今日播放次数（假设每个听众平均听3分钟）
-  const predictedStreams = Math.round(predictedTotalMinutes / 3);
-
-  document.getElementById('prediction-content').innerHTML = \`
-    <div class="stats-grid">
-      <div class="stat-card highlight">
-        <div class="stat-icon">🌟</div>
-        <div class="stat-content">
-          <div class="stat-label">今日预计播放次数</div>
-          <div class="stat-value">\${predictedStreams.toLocaleString()}</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
-        <div class="stat-content">
-          <div class="stat-label">当前势能</div>
-          <div class="stat-value">\${trend}</div>
-          <div style="font-size:12px;color:\${trendPercent > 0 ? '#1DB954' : '#ef4444'}">\${trendPercent > 0 ? '+' : ''}\${trendPercent}% (较上小时)</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
-        <div class="stat-content">
-          <div class="stat-label">今日活跃时长</div>
-          <div class="stat-value">\${Math.round(predictedTotalMinutes).toLocaleString()} 分钟</div>
-        </div>
-      </div>
-    </div>
-  \`;
 }
 
 function loadAnalytics(data) {
